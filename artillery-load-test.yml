@@ -1,0 +1,44 @@
+config:
+  target: "http://localhost:8000"  # Sesuaikan dengan URL aplikasi Anda
+  phases:
+    - duration: 60
+      arrivalRate: 50  # 50 pengguna baru per detik
+  http:
+    timeout: 10  # Timeout dalam detik
+
+scenarios:
+  - name: "Pengujian Halaman Utama dan Dashboard"
+    flow:
+      # Kunjungi halaman utama (akan diredirect ke /dashboard)
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+          capture:
+            - selector: "input[name=_token]"
+              attr: value
+              as: csrf_token
+
+      # Kunjungi halaman dashboard
+      - get:
+          url: "/dashboard"
+          expect:
+            - statusCode: 200
+
+      # Simulasi login
+      - post:
+          url: "/login"
+          headers:
+            Content-Type: "application/x-www-form-urlencoded"
+          form:
+            _token: "{{ csrf_token }}"
+            email: "user@example.com"  # Sesuaikan dengan kredensial valid
+            password: "password123"    # Ganti dengan password yang benar
+          expect:
+            - statusCode: 302  # Redirect setelah login berhasil
+
+      # Kunjungi dashboard lagi setelah login
+      - get:
+          url: "/dashboard"
+          expect:
+            - statusCode: 200 

@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
+class AnalysisService
+{
+    public function performAnalysis($selectedVariables, $villageId = null, $visualizationType = 'table')
+    {
+        try {
+            $query = DB::table('family_members')
+                ->join('families', 'family_members.family_id', '=', 'families.id')
+                ->join('buildings', 'families.building_id', '=', 'buildings.id')
+                ->join('villages', 'buildings.village_id', '=', 'villages.id')
+                ->select([
+                    'family_members.*',
+                    'families.family_number',
+                    'families.head_name',
+                    'villages.name as village_name',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY families.id ORDER BY family_members.id) as family_member_number')
+                ]);
+
+            if ($villageId) {
+                $query->where('villages.id', $villageId);
+            }
+
+            // Urutkan berdasarkan lokasi
+            $query->orderBy('villages.name')
+                ->orderBy('buildings.building_number')
+                ->orderBy('families.family_number')
+                ->orderBy('family_members.id');
+
+            $results = $query->get();
+
+            return $this->formatData($results, $selectedVariables, $visualizationType);
+        } catch (\Exception $e) {
+            \Log::error('Analysis Service Error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    protected function formatData($results, $selectedVariables, $visualizationType)
+    {
+        try {
+            switch ($visualizationType) {
+                case 'table':
+                    return $this->formatTableData($results, $selectedVariables);
+                case 'bar':
+                    return $this->formatBarChartData($results, $selectedVariables);
+                case 'pie':
+                    return $this->formatPieChartData($results, $selectedVariables);
+                default:
+                    return $this->formatTableData($results, $selectedVariables);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Format Data Error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    protected function formatTableData($results, $selectedVariables)
+    {
+        $data = [
+            'type' => 'table',
+            'headers' => [],
+            'rows' => []
+        ];
+
+        // Selalu tambahkan kolom informasi lokasi di awal jika dipilih
+        $locationColumns = ['village_name', 'building_number', 'family_number', 'name'];
+        $selectedLocationColumns = array_intersect($locationColumns, $selectedVariables);
+
+        // Susun ulang variabel yang dipilih
+        $reorderedVariables = array_merge(
+            $selectedLocationColumns,
+            array_diff($selectedVariables, $locationColumns)
+        );
+
+        foreach ($reorderedVariables as $variable) {
+            $data['headers'][] = $this->getVariableLabel($variable);
+        }
+
+        foreach ($results as $result) {
+            $row = [];
+            foreach ($reorderedVariables as $variable) {
+                $value = $this->getFormattedValue($result, $variable);
+                $row[] = $value;
+            }
+            $data['rows'][] = $row;
+        }
+
+        foreach ($selectedVariables as $variable) {
+            $data['headers'][] = $this->getVariableLabel($variable);
+        }
+
+        foreach ($results as $result) {
+            $row = [];
+            foreach ($selectedVariables as $variable) {
+                $row[] = $this->getFormattedValue($result, $variable);
+            }
+            $data['rows'][] = $row;
+        }
+
+        return $data;
+    }
+
+    protected function formatBarChartData($results, $selectedVariables)
+    {
+        $data = [
+            'type' => 'bar',
+            'labels' => [],
+            'datasets' => []
+        ];
+
+        foreach ($selectedVariables as $variable) {
+            $counts = $results->groupBy($variable)->map->count();
+            $data['labels'] = $counts->keys()->toArray();
+            $data['datasets'][] = [
+                'label' => $this->getVariableLabel($variable),
+                'data' => $counts->values()->toArray()
+            ];
+        }
+
+        return $data;
+    }
+
+    protected function formatPieChartData($results, $selectedVariables)
+    {
+        // Similar to bar chart but formatted for pie chart
+        return $this->formatBarChartData($results, $selectedVariables);
+    }
+
+    protected function getVariableLabel($variable)
+    {
+        $labels = [
+            'village_name' => 'Desa',
+            'building_number' => 'No. Bangunan',
+            'family_number' => 'No. KK',
+            'name' => 'Nama',
+            'family_member_number' => 'No. Urut',
+
+            'age' => 'Usia',
+            'gender' => 'Jenis Kelamin',
+            'education' => 'Pendidikan',
+            'marital_status' => 'Status Pernikahan',
+            'occupation' => 'Pekerjaan',
+            'religion' => 'Agama',
+            'is_pregnant' => 'Status Kehamilan',
+            'has_jkn' => 'Kepemilikan JKN',
+            'has_tuberculosis' => 'Penderita TBC',
+            'takes_tb_medication_regularly' => 'Keteraturan Minum Obat TBC',
+            'has_chronic_cough' => 'Batuk Kronis',
+            'has_hypertension' => 'Hipertensi',
+            // Add more labels as needed
+        ];
+
+        return $labels[$variable] ?? $variable;
+    }
+
+    protected function getFormattedValue($result, $variable)
+    {
+        $value = $result->$variable;
+
+        // Format khusus untuk beberapa tipe data
+        switch ($variable) {
+            case 'building_number':
+                return 'B-' . str_pad($value, 3, '0', STR_PAD_LEFT);
+            case 'family_number':
+                return 'KK-' . str_pad($value, 3, '0', STR_PAD_LEFT);
+            case 'family_member_number':
+                return str_pad($value, 2, '0', STR_PAD_LEFT);
+            default:
+                if (is_bool($value) || in_array($value, [0, 1, '0', '1'])) {
+                    return $value == 1 ? 'Ya' : 'Tidak';
+                }
+                return $value ?? '-';
+        }
+    }
+}
