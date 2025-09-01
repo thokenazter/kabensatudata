@@ -9,10 +9,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyMemberController;
 use App\Http\Controllers\FamilyController;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 
 // Route::get('/', function () {
 //     return view('welcome');
 // });
+
+Route::get('/clear-cache', function () {
+    Artisan::call('optimize:clear');
+    return 'Optimize clear sudah Updtedte';
+});
 
 // Redirect root to dashboard
 Route::redirect('/', '/dashboard');
@@ -108,7 +114,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/test-chatbot', function () {
         return view('test-chatbot');
     })->name('test.chatbot');
-    
+
     Route::get('/admin/chatbot', function () {
         // Define empty variables that are expected by the layout
         $educationStats = [];
@@ -139,13 +145,13 @@ Route::middleware(['auth'])->group(function () {
             'growth_monitoring_count' => 0
         ];
         $jknByVillage = collect([]);
-        
+
         return view('admin.chatbot', compact(
-            'educationStats', 
-            'genderStats', 
-            'ageStats', 
-            'maritalStats', 
-            'sanitationStats', 
+            'educationStats',
+            'genderStats',
+            'ageStats',
+            'maritalStats',
+            'sanitationStats',
             'waterStats',
             'jknStats',
             'kiaStats',
