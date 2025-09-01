@@ -1,0 +1,275 @@
+<?php
+
+namespace App\Models;
+
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
+
+class FamilyMember extends Model
+{
+    protected $fillable = [
+        'family_id',
+        'name',
+        'nik',
+        'relationship',
+        'birth_place',
+        'birth_date',
+        'gender',
+        'is_pregnant',
+        'religion',
+        'education',
+        'marital_status',
+        'occupation',
+        'has_jkn',
+        'is_smoker',
+        'use_water',
+        'use_toilet',
+        'has_tuberculosis',
+        'takes_tb_medication_regularly',
+        'has_chronic_cough',
+        'has_hypertension',
+        'takes_hypertension_medication_regularly',
+        'uses_contraception',
+        'gave_birth_in_health_facility',
+        'exclusive_breastfeeding',
+        'complete_immunization',
+        'growth_monitoring'
+    ];
+
+    protected $casts = [
+        'birth_date' => 'date',
+        'is_pregnant' => 'boolean',
+        'has_jkn' => 'boolean',
+        'is_smoker' => 'boolean',
+        'use_toilet' => 'boolean',
+        'has_tuberculosis' => 'boolean',
+        'takes_tb_medication_regularly' => 'boolean',
+        'has_chronic_cough' => 'boolean',
+        'has_hypertension' => 'boolean',
+        'takes_hypertension_medication_regularly' => 'boolean',
+        'uses_contraception' => 'boolean',
+        'gave_birth_in_health_facility' => 'boolean',
+        'exclusive_breastfeeding' => 'boolean',
+        'complete_immunization' => 'boolean',
+        'growth_monitoring' => 'boolean',
+    ];
+
+    // Tambahkan accessor ini di class FamilyMember
+
+    /**
+     * Get the public version of name (blurred for non-logged in users)
+     */
+    public function getPublicNameAttribute(): string
+    {
+        return blur_text($this->name);
+    }
+
+    /**
+     * Get the public version of NIK (blurred for non-logged in users)
+     */
+    public function getPublicNikAttribute(): string
+    {
+        return blur_nik($this->nik);
+    }
+
+    /**
+     * Get the public version of birth place (blurred for non-logged in users)
+     */
+    public function getPublicBirthPlaceAttribute(): string
+    {
+        return blur_text($this->birth_place);
+    }
+
+    /**
+     * Get the public version of birth date (blurred for non-logged in users)
+     */
+    public function getPublicBirthDateAttribute(): ?string
+    {
+        if (should_blur_data()) {
+            return $this->birth_date ? $this->birth_date->format('Y') : null;
+        }
+
+        return $this->birth_date ? $this->birth_date->format('d-m-Y') : null;
+    }
+    // ini baru ditambahkan
+
+    public function family(): BelongsTo
+    {
+        return $this->belongsTo(Family::class);
+    }
+
+    // Menghitung umur berdasarkan tanggal lahir
+    public function getAgeAttribute()
+    {
+        if ($this->birth_date) {
+            return Carbon::parse($this->birth_date)->age;
+        }
+        return null;
+    }
+
+    // Menentukan apakah anggota keluarga adalah wanita usia subur (10-54 tahun)
+    public function getIsWomenOfReproductiveAgeAttribute()
+    {
+        return $this->gender === 'Perempuan' && $this->getAgeAttribute() >= 10 && $this->getAgeAttribute() <= 54;
+    }
+
+    // Menentukan apakah anggota keluarga adalah anak balita (0-59 bulan)
+    public function getIsUnderFiveAttribute()
+    {
+        $age = $this->getAgeAttribute();
+        return $age !== null && $age < 5;
+    }
+
+    // Menentukan apakah anggota keluarga berusia di atas 10 tahun
+    public function getIsAboveTenAttribute()
+    {
+        $age = $this->getAgeAttribute();
+        return $age !== null && $age > 10;
+    }
+
+    // Menentukan apakah anggota keluarga berusia di atas 15 tahun
+    public function getIsAboveFifteenAttribute()
+    {
+        $age = $this->getAgeAttribute();
+        return $age !== null && $age > 15;
+    }
+
+    // Relasi ke model Village melalui Family
+    public function village()
+    {
+        return $this->hasOneThrough(Village::class, Family::class);
+    }
+
+    // Tambahkan kode berikut ke dalam model FamilyMember yang sudah ada
+
+    /**
+     * Get formatted birth date
+     */
+    public function getFormattedBirthDateAttribute(): ?string
+    {
+        return $this->birth_date ? $this->birth_date->format('d-m-Y') : null;
+    }
+
+    /**
+     * Get public version of age
+     */
+    public function getPublicAgeAttribute(): string
+    {
+        if (should_blur_data()) {
+            return '**';
+        }
+
+        return (string)$this->age;
+    }
+
+    /**
+     * Get medication status text for TB
+     */
+    public function getTbMedicationStatusTextAttribute(): string
+    {
+        if (!$this->has_tuberculosis) {
+            return '';
+        }
+
+        return $this->takes_tb_medication_regularly
+            ? '<span class="text-green-600">Minum Obat Secara Teratur</span>'
+            : '<span class="text-red-600">Mangkir Obat</span>';
+    }
+
+    /**
+     * Get medication status text for hypertension
+     */
+    public function getHypertensionMedicationStatusTextAttribute(): string
+    {
+        if (!$this->has_hypertension) {
+            return '';
+        }
+
+        return $this->takes_hypertension_medication_regularly
+            ? '<span class="text-green-600">Minum Obat Secara Teratur</span>'
+            : '<span class="text-red-600">Tdk Pernah Konsumsi Obat Darah Tinggi</span>';
+    }
+    // Tambahkan kode berikut ke model FamilyMember
+
+    /**
+     * Get the village of this family member
+     */
+    public function getVillageAttribute()
+    {
+        return $this->family ? $this->family->village : null;
+    }
+
+    /**
+     * Get the district of this family member
+     */
+    public function getDistrictAttribute()
+    {
+        $village = $this->getVillageAttribute();
+        return $village ? $village->district : null;
+    }
+
+    /**
+     * Get the regency of this family member
+     */
+    public function getRegencyAttribute()
+    {
+        $district = $this->getDistrictAttribute();
+        return $district ? $district->regency : null;
+    }
+
+    /**
+     * Get spouse information if married
+     */
+    public function getSpouseAttribute()
+    {
+        if ($this->marital_status !== 'Kawin') {
+            return null;
+        }
+
+        $oppositeGender = $this->gender === 'Laki-laki' ? 'Perempuan' : 'Laki-laki';
+
+        // Try to find spouse by relationship
+        $spouse = $this->family->members()
+            ->where('gender', $oppositeGender)
+            ->whereIn('relationship', ['Istri', 'Suami'])
+            ->where('id', '!=', $this->id)
+            ->first();
+
+        // If not found, try by marital status
+        if (!$spouse) {
+            $spouse = $this->family->members()
+                ->where('gender', $oppositeGender)
+                ->where('marital_status', 'Kawin')
+                ->where('id', '!=', $this->id)
+                ->first();
+        }
+
+        return $spouse;
+    }
+
+    /**
+     * Get head of family
+     */
+    public function getHeadOfFamilyAttribute()
+    {
+        return $this->family->members()
+            ->where('relationship', 'Kepala Keluarga')
+            ->first();
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'slug'; // Pastikan Anda menambahkan kolom 'slug' di tabel
+    }
+    // Tambahkan accessor untuk slug jika belum ada
+    public function getSlugAttribute()
+    {
+        if (!$this->attributes['slug']) {
+            // Generate slug jika belum ada
+            return str_slug($this->name) . '-' . $this->id;
+        }
+        return $this->attributes['slug'];
+    }
+}

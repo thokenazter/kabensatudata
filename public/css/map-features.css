@@ -1,0 +1,452 @@
+/**
+ * PKM Kaben Map Features - Styling untuk fitur peta terbarukan
+ */
+
+/* ====== BUILDING SEARCH STYLES ====== */
+.map-search-container {
+    margin: 1rem 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.search-input-group {
+    display: flex;
+    align-items: center;
+    background: white;
+}
+
+.search-input-group input {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: transparent;
+}
+
+.search-input-group input::placeholder {
+    color: #64748b;
+}
+
+.search-btn {
+    padding: 12px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+    background: #2563eb;
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border-top: 1px solid #e2e8f0;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background: #f8fafc;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item strong {
+    display: block;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.search-result-item small {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.search-no-results,
+.search-not-found,
+.search-error {
+    padding: 16px;
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.search-not-found {
+    color: #dc2626;
+}
+
+.search-error {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+/* ====== PRIORITY MARKER (SEARCH HIGHLIGHT) ====== */
+.priority-marker-container {
+    background: transparent !important;
+    border: none !important;
+}
+
+.priority-marker {
+    width: 60px;
+    height: 60px;
+    background: #ef4444;
+    border: 3px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    position: relative;
+}
+
+.priority-marker.pulsing {
+    animation: pulse 2s infinite;
+}
+
+.priority-marker .marker-inner {
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+}
+
+/* ====== HOUSE LABELS STYLES ====== */
+.building-label-container {
+    background: transparent !important;
+    border: none !important;
+}
+
+.building-label {
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* ====== MAP CONTROL BUTTONS ====== */
+.map-control-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 4px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.map-control-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.map-control-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.map-control-btn.active:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+/* ====== MEASUREMENT TOOLS STYLES ====== */
+.measure-toolbar {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 16px;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.measure-toolbar.hidden {
+    display: none;
+}
+
+.measure-toolbar h4 {
+    margin: 0 0 12px 0;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.measure-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.measure-btn {
+    padding: 10px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.measure-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.measure-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.measure-result {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #0c4a6e;
+}
+
+/* ====== BUFFER VISUALIZATION STYLES ====== */
+.buffer-circle {
+    fill: rgba(59, 130, 246, 0.1);
+    stroke: #3b82f6;
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+}
+
+.buffer-circle.buffer-50 {
+    stroke: #10b981;
+    fill: rgba(16, 185, 129, 0.1);
+}
+
+.buffer-circle.buffer-100 {
+    stroke: #f59e0b;
+    fill: rgba(245, 158, 11, 0.1);
+}
+
+.buffer-circle.buffer-200 {
+    stroke: #ef4444;
+    fill: rgba(239, 68, 68, 0.1);
+}
+
+.buffer-info {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 14px;
+    max-width: 300px;
+    z-index: 1000;
+}
+
+.buffer-info h5 {
+    margin: 0 0 8px 0;
+    color: #1e293b;
+    font-size: 16px;
+}
+
+.buffer-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.buffer-stat {
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.buffer-stat .value {
+    font-weight: bold;
+    font-size: 18px;
+    color: #1e293b;
+}
+
+.buffer-stat .label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* ====== NEAREST NEIGHBORS STYLES ====== */
+.nearest-line {
+    stroke: #8b5cf6;
+    stroke-width: 2;
+    stroke-dasharray: 3, 3;
+    fill: none;
+}
+
+.nearest-marker {
+    background: #8b5cf6;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+}
+
+/* ====== RESPONSIVE STYLES ====== */
+@media (max-width: 768px) {
+    .measure-toolbar {
+        right: 10px;
+        left: 10px;
+        top: 70px;
+        min-width: auto;
+    }
+    
+    .buffer-info {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        max-width: none;
+    }
+    
+    .buffer-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-results {
+        max-height: 150px;
+    }
+}
+
+/* ====== VECTOR TILES SUPPORT ====== */
+.maplibregl-map {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.maplibregl-ctrl-group {
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.maplibregl-ctrl-group button {
+    background: white;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.maplibregl-ctrl-group button:hover {
+    background: #f8fafc;
+}
+
+/* ====== LOADING STATES ====== */
+.loading-indicator {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.feature-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ====== TOAST NOTIFICATIONS ====== */
+.map-toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: white;
+    border-left: 4px solid #3b82f6;
+    padding: 12px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 2000;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.map-toast.success {
+    border-left-color: #10b981;
+}
+
+.map-toast.error {
+    border-left-color: #ef4444;
+}
+
+.map-toast.warning {
+    border-left-color: #f59e0b;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
