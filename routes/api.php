@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\CrosstabController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\MapBuildingController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Route untuk crosstab API
@@ -29,4 +30,35 @@ Route::prefix('map')->group(function () {
     // Stats endpoint (optional)
     Route::get('/stats', [MapBuildingController::class, 'stats'])
         ->name('api.map.stats');
+});
+
+// Aliases to fit frontend contracts
+Route::get('/buildings', function (Request $request) {
+    // Convert bounds={north,south,east,west} to bbox
+    $bounds = $request->query('bounds');
+    if ($bounds) {
+        $decoded = is_string($bounds) ? json_decode($bounds, true) : $bounds;
+        if (is_array($decoded) && isset($decoded['west'], $decoded['south'], $decoded['east'], $decoded['north'])) {
+            $bbox = implode(',', [$decoded['west'], $decoded['south'], $decoded['east'], $decoded['north']]);
+            $request->merge(['bbox' => $bbox]);
+        }
+    }
+    $controller = app(MapBuildingController::class);
+    return $controller->bbox($request);
+});
+
+Route::get('/buildings/{id}/families', function ($id) {
+    // Reuse web endpoint logic for details
+    return app(\App\Http\Controllers\MapController::class)->getBuildingDetails($id);
+});
+
+Route::get('/health-statistics/by-area', function (Request $request) {
+    // Proxy to stats
+    return app(MapBuildingController::class)->stats($request);
+});
+
+Route::post('/sync/changes', function (Request $request) {
+    // Minimal ack endpoint for offline sync queue
+    // TODO: Apply changes to DB if needed
+    return response()->json(['ok' => true, 'received' => count($request->input('changes', []))]);
 });

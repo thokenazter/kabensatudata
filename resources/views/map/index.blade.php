@@ -2151,7 +2151,7 @@ const PkmKabenApp = {
             buildingDetail: '/map/buildings/'
         },
         mapSettings: {
-            defaultView: [-5.7465, 134.797032],
+            defaultView: [-5.739483493261797, 134.79414177089714],
             defaultZoom: 15,
             maxZoom: 25
         },

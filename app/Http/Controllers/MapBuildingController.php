@@ -68,13 +68,20 @@ class MapBuildingController extends Controller
                 'village_id',
                 'updated_at'
             ])
-            ->with(['village:id,name'])
+            ->with([
+                'village:id,name',
+                // Load minimal family + member data to compute aggregated flags/IKS
+                'families:id,building_id,has_clean_water,is_water_protected,has_toilet,is_toilet_sanitary,has_mental_illness',
+                'families.members:id,family_id,is_pregnant,has_tuberculosis,takes_tb_medication_regularly,has_hypertension,complete_immunization,gave_birth_in_health_facility',
+                'families.healthIndex:id,family_id,health_status'
+            ])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->where('latitude', '!=', '')
             ->where('longitude', '!=', '')
-            ->whereBetween('latitude', [$minLat, $maxLat])
-            ->whereBetween('longitude', [$minLon, $maxLon]);
+            // Ensure numeric comparison even if columns are stored as VARCHAR
+            ->whereRaw('CAST(latitude AS DECIMAL(12,8)) BETWEEN ? AND ?', [$minLat, $maxLat])
+            ->whereRaw('CAST(longitude AS DECIMAL(12,8)) BETWEEN ? AND ?', [$minLon, $maxLon]);
 
             // Apply delta sync if timestamp provided
             if ($since) {
@@ -104,6 +111,40 @@ class MapBuildingController extends Controller
                     return null; // Skip invalid coordinates
                 }
 
+                // Aggregate flags across families/members
+                $families = $building->families ?? collect();
+                $members = $families->flatMap(fn($f) => $f->members ?? collect());
+
+                // Disease flags
+                $hasTb = $members->contains(fn($m) => (bool) $m->has_tuberculosis);
+                $tbMedication = $members->contains(fn($m) => (bool) $m->takes_tb_medication_regularly);
+                $hasHypertension = $members->contains(fn($m) => (bool) $m->has_hypertension);
+                $mentalIllness = $families->contains(fn($f) => (bool) $f->has_mental_illness);
+
+                // Sanitation flags (any family with true)
+                $hasCleanWater = $families->contains(fn($f) => (bool) $f->has_clean_water);
+                $isWaterProtected = $families->contains(fn($f) => (bool) $f->is_water_protected);
+                $hasToilet = $families->contains(fn($f) => (bool) $f->has_toilet);
+                $isToiletSanitary = $families->contains(fn($f) => (bool) $f->is_toilet_sanitary);
+
+                // Maternal/child
+                $pregnant = $members->contains(fn($m) => (bool) $m->is_pregnant);
+                $facilityBirth = $members->contains(fn($m) => (bool) $m->gave_birth_in_health_facility);
+                $immunization = $members->contains(fn($m) => (bool) $m->complete_immunization);
+
+                // IKS status aggregation from latest healthIndex per family
+                $iksStatus = 'unknown';
+                $familyStatuses = $families->map(fn($f) => optional($f->healthIndex)->health_status)->filter();
+                if ($familyStatuses->count() > 0) {
+                    if ($familyStatuses->contains('Keluarga Tidak Sehat')) {
+                        $iksStatus = 'unhealthy';
+                    } elseif ($familyStatuses->contains('Keluarga Pra-Sehat')) {
+                        $iksStatus = 'pra_healthy';
+                    } elseif ($familyStatuses->contains('Keluarga Sehat')) {
+                        $iksStatus = 'healthy';
+                    }
+                }
+
                 return [
                     'type' => 'Feature',
                     'geometry' => [
@@ -116,6 +157,21 @@ class MapBuildingController extends Controller
                         'village_name' => $building->village?->name,
                         'village_id' => $building->village_id,
                         'updated_at' => $building->updated_at?->toIso8601String(),
+                        'families_count' => $families->count(),
+                        'iks_status' => $iksStatus,
+                        'flags' => [
+                            'has_tb' => $hasTb,
+                            'tb_medication' => $tbMedication,
+                            'has_hypertension' => $hasHypertension,
+                            'mental_illness' => $mentalIllness,
+                            'has_clean_water' => $hasCleanWater,
+                            'is_water_protected' => $isWaterProtected,
+                            'has_toilet' => $hasToilet,
+                            'is_toilet_sanitary' => $isToiletSanitary,
+                            'pregnant' => $pregnant,
+                            'facility_birth' => $facilityBirth,
+                            'immunization' => $immunization,
+                        ],
                     ]
                 ];
             })->filter(); // Remove null entries

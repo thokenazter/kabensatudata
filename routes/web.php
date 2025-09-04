@@ -93,6 +93,11 @@ Route::get('/map', [MapController::class, 'index'])->name('map.index');
 Route::get('/map/buildings', [MapController::class, 'getBuildingsData']);
 Route::get('/map/buildings/{id}', [MapController::class, 'getBuildingDetails']);
 
+// Experimental Vue-based map (new UI)
+Route::get('/map-vue', function () {
+    return view('map.vue');
+})->name('map.vue');
+
 // Rute debugging untuk memeriksa fungsi API
 Route::get('/debug/buildings/{id}', function ($id) {
     $building = \App\Models\Building::with([

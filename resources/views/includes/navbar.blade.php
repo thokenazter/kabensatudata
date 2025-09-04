@@ -34,7 +34,7 @@
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
                     Analysis
                 </a>
-                <a href="{{ route('map.index') }}" 
+                <a href="{{ route('map.vue') }}" 
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
                     Map
                 </a>
@@ -403,7 +403,7 @@
         class="block px-4 py-2 rounded-lg text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-300">
         Analysis
     </a>
-        <a href="{{ route('map.index') }}" 
+        <a href="{{ route('map.vue') }}" 
             class="block px-4 py-2 rounded-lg text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-300">
             Map
         </a>

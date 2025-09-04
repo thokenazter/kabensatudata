@@ -61,6 +61,13 @@
                 
                 <!-- Action Buttons - Compact -->
                 <div class="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-2">
+                    @php
+                        $building = optional($familyMember->family)->building;
+                        $lat = $building->latitude ?? null;
+                        $lon = $building->longitude ?? null;
+                        $hasCoords = is_numeric($lat) && is_numeric($lon);
+                    @endphp
+
                     <a href="{{ route('families.card.member', $familyMember) }}" 
                        class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,6 +92,30 @@
                         </svg>
                         Cetak
                     </button>
+
+                    @if($building)
+                        @if($hasCoords)
+                            <a href="{{ url('/map-vue') }}?lat={{ $lat }}&lon={{ $lon }}&zoom=20&id={{ $building->id }}" target="_blank"
+                               class="inline-flex items-center px-3 py-2 bg-emerald-600 text-white text-sm rounded-md hover:bg-emerald-700 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                Lihat Lokasi di Peta
+                            </a>
+                        @else
+                            <button type="button"
+                                    onclick="alert('Lokasi rumah belum memiliki koordinat. Mohon lengkapi latitude/longitude di data bangunan.')"
+                                    class="inline-flex items-center px-3 py-2 bg-gray-300 text-gray-600 text-sm rounded-md cursor-not-allowed"
+                                    title="Koordinat belum tersedia">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                                Lihat Lokasi di Peta
+                            </button>
+                        @endif
+                    @endif
                 </div>
             </header>
 
