@@ -2,7 +2,11 @@
 <div class="p-6">
   <div class="mb-4">
     <h3 class="text-base font-semibold text-gray-900">
-      {{ $familyMember->name }} • {{ $medicalRecord->visit_date->format('d-m-Y') }}
+      @php
+        $visitDateDisplay = optional($medicalRecord->visit_date)->format('d-m-Y');
+        $createdAtDisplay = optional($medicalRecord->created_at)->format('d-m-Y H:i');
+      @endphp
+      {{ $familyMember->name }} • {{ $visitDateDisplay ?? 'Tanggal tidak tersedia' }}
     </h3>
     <p class="text-sm text-gray-500">
       {{ $familyMember->gender }} • {{ $familyMember->formatted_birth_date ?? '-' }} •
@@ -157,7 +161,10 @@
   </div>
 
   <div class="mt-4 text-xs text-gray-500">
-    Dicatat oleh: {{ $medicalRecord->creator->name ?? 'System' }} •
-    Input: {{ $medicalRecord->created_at->format('d-m-Y H:i') }}
-  </div>
+    @php
+      $creatorName = optional($medicalRecord->creator)->name;
+    @endphp
+    Dicatat oleh: {{ $creatorName ?? 'System' }} •
+    Input: {{ $createdAtDisplay ?? '—' }}
+</div>
 </div>
