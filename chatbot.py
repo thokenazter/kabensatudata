@@ -45,7 +45,17 @@ def load_knowledge():
                     knowledge.append("=== WEBSITE KNOWLEDGE ===\n" + website_content)
         except Exception as e:
             print(f"Error loading website knowledge: {e}", file=sys.stderr)
-    
+
+    if os.path.exists("app_knowledge.txt"):
+        try:
+            with open("app_knowledge.txt", "r", encoding="utf-8") as f:
+                app_content = f.read()
+                if app_content.strip():
+                    app_content = clean_text(app_content)
+                    knowledge.append("=== APPLICATION KNOWLEDGE ===\n" + app_content)
+        except Exception as e:
+            print(f"Error loading application knowledge: {e}", file=sys.stderr)
+
     # Load PDF knowledge if available
     if os.path.exists("knowledge.txt"):
         try:
@@ -119,7 +129,13 @@ def sync_knowledge_files():
                 content = src.read()
                 with open("public/website_knowledge.txt", "w", encoding="utf-8") as dst:
                     dst.write(content)
-        
+
+        if os.path.exists("app_knowledge.txt"):
+            with open("app_knowledge.txt", "r", encoding="utf-8") as src:
+                content = src.read()
+                with open("public/app_knowledge.txt", "w", encoding="utf-8") as dst:
+                    dst.write(content)
+
         # Copy knowledge.txt to public/
         if os.path.exists("knowledge.txt"):
             with open("knowledge.txt", "r", encoding="utf-8") as src:

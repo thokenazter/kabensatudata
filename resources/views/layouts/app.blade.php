@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>PKM Kaben - Satu Data</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/iconsatudata.PNG') }}">
+    <link rel="shortcut icon" href="{{ asset('images/iconsatudata.PNG') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/iconsatudata.PNG') }}">
 
     <script>
         const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};

@@ -11,6 +11,7 @@ class Medicine extends Model
         'name',
         'generic_name',
         'stock_quantity',
+        'stock_initial',
         'unit',
         'minimum_stock',
         'strength',
@@ -20,7 +21,22 @@ class Medicine extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'stock_initial' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $medicine) {
+            if (is_null($medicine->stock_initial)) {
+                $medicine->stock_initial = $medicine->stock_quantity;
+            }
+        });
+    }
+
+    public function monthlyStocks(): HasMany
+    {
+        return $this->hasMany(MedicineMonthlyStock::class);
+    }
 
     /**
      * Get the medicine usages for this medicine.

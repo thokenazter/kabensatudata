@@ -1,8 +1,47 @@
+@php
+    // Provide safe defaults so views that don't define these variables won't error
+    $genderStats = $genderStats ?? ['male' => 0, 'female' => 0];
+    $ageStats = $ageStats ?? ['0-5' => 0, '6-12' => 0, '13-17' => 0, '18-30' => 0, '31-50' => 0, '>50' => 0];
+    $educationStats = $educationStats ?? [];
+    $sanitationStats = $sanitationStats ?? [
+        'clean_water_count' => 0,
+        'protected_water_count' => 0,
+        'toilet_count' => 0,
+        'sanitary_toilet_count' => 0,
+    ];
+    $maternalStats = $maternalStats ?? [
+        'kb_count' => 0,
+        'no_kb_count' => 0,
+        'pregnant_count' => 0,
+        'health_facility_birth_count' => 0,
+    ];
+    $childStats = $childStats ?? [
+        'exclusive_breastfeeding_count' => 0,
+        'complete_immunization_count' => 0,
+        'growth_monitoring_count' => 0,
+    ];
+    $jknStats = $jknStats ?? ['jkn_count' => 0, 'members' => 0];
+    $jknByVillage = $jknByVillage ?? collect([]);
+    $stats = $stats ?? [
+        'families' => 0,
+        'tbc_count' => 0,
+        'hypertension_count' => 0,
+        'chronic_cough_count' => 0,
+        'mental_illness_count' => 0,
+        'restrained_count' => 0,
+    ];
+    $canViewSensitiveHealth = auth()->check() && auth()->user()->hasAnyRole(['nakes', 'super_admin']);
+    $sanitizedStats = $stats;
+    if (!$canViewSensitiveHealth) {
+        $sanitizedStats['tbc_count'] = 0;
+        $sanitizedStats['hypertension_count'] = 0;
+    }
+@endphp
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Gender Chart
-        const genderCtx = document.getElementById('genderChart').getContext('2d');
-        new Chart(genderCtx, {
+        const genderEl = document.getElementById('genderChart');
+        if (genderEl) new Chart(genderEl.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: ['Laki-laki', 'Perempuan'],
@@ -26,8 +65,8 @@
         });
 
         // Age Chart
-        const ageCtx = document.getElementById('ageChart').getContext('2d');
-        new Chart(ageCtx, {
+        const ageEl = document.getElementById('ageChart');
+        if (ageEl) new Chart(ageEl.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: ['0-5', '6-12', '13-17', '18-30', '31-50', '>50'],
@@ -58,8 +97,8 @@
         });
 
         // Education Chart
-        const educationCtx = document.getElementById('educationChart').getContext('2d');
-        new Chart(educationCtx, {
+        const educationEl = document.getElementById('educationChart');
+        if (educationEl) new Chart(educationEl.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: {!! json_encode(isset($educationStats) ? array_keys($educationStats) : []) !!},
@@ -85,19 +124,19 @@
         });
 
         // Health Chart
-        const healthCtx = document.getElementById('healthChart').getContext('2d');
-        new Chart(healthCtx, {
+        const healthEl = document.getElementById('healthChart');
+        if (healthEl) new Chart(healthEl.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: ['Pernah TBC', 'Hipertensi', 'Batuk Kronis', 'Gangguan Jiwa', 'Pasung'],
                 datasets: [{
                     label: 'Jumlah Kasus',
-                    data: [
-                        {{ $stats['tbc_count'] }}, 
-                        {{ $stats['hypertension_count'] }}, 
-                        {{ $stats['chronic_cough_count'] }}, 
-                        {{ $stats['mental_illness_count'] }}, 
-                        {{ $stats['restrained_count'] }}
+                data: [
+                        {{ $sanitizedStats['tbc_count'] ?? 0 }}, 
+                        {{ $sanitizedStats['hypertension_count'] ?? 0 }}, 
+                        {{ $sanitizedStats['chronic_cough_count'] ?? 0 }}, 
+                        {{ $sanitizedStats['mental_illness_count'] ?? 0 }}, 
+                        {{ $sanitizedStats['restrained_count'] ?? 0 }}
                     ],
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.7)',
@@ -121,17 +160,17 @@
         });
     });
     // Water Distribution Chart
-        const waterCtx = document.getElementById('waterChart').getContext('2d');
-        new Chart(waterCtx, {
+        const waterEl = document.getElementById('waterChart');
+        if (waterEl) new Chart(waterEl.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: ['Memiliki Air Bersih', 'Tidak Memiliki Air Bersih', 'Air Bersih Terlindungi', 'Air Bersih Tidak Terlindungi'],
                 datasets: [{
                     data: [
-                        {{ $sanitationStats['clean_water_count'] }},
-                        {{ $stats['families'] - $sanitationStats['clean_water_count'] }},
-                        {{ $sanitationStats['protected_water_count'] }},
-                        {{ $sanitationStats['clean_water_count'] - $sanitationStats['protected_water_count'] }}
+                        {{ $sanitationStats['clean_water_count'] ?? 0 }},
+                        {{ ($stats['families'] ?? 0) - ($sanitationStats['clean_water_count'] ?? 0) }},
+                        {{ $sanitationStats['protected_water_count'] ?? 0 }},
+                        {{ ($sanitationStats['clean_water_count'] ?? 0) - ($sanitationStats['protected_water_count'] ?? 0) }}
                     ],
                     backgroundColor: [
                         'rgba(54, 162, 235, 0.7)',
@@ -149,17 +188,17 @@
         });
 
         // Toilet Distribution Chart
-        const toiletCtx = document.getElementById('toiletChart').getContext('2d');
-        new Chart(toiletCtx, {
+        const toiletEl = document.getElementById('toiletChart');
+        if (toiletEl) new Chart(toiletEl.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: ['Memiliki Jamban', 'Tidak Memiliki Jamban', 'Jamban Saniter', 'Jamban Tidak Saniter'],
                 datasets: [{
                     data: [
-                        {{ $sanitationStats['toilet_count'] }},
-                        {{ $stats['families'] - $sanitationStats['toilet_count'] }},
-                        {{ $sanitationStats['sanitary_toilet_count'] }},
-                        {{ $sanitationStats['toilet_count'] - $sanitationStats['sanitary_toilet_count'] }}
+                        {{ $sanitationStats['toilet_count'] ?? 0 }},
+                        {{ ($stats['families'] ?? 0) - ($sanitationStats['toilet_count'] ?? 0) }},
+                        {{ $sanitationStats['sanitary_toilet_count'] ?? 0 }},
+                        {{ ($sanitationStats['toilet_count'] ?? 0) - ($sanitationStats['sanitary_toilet_count'] ?? 0) }}
                     ],
                     backgroundColor: [
                         'rgba(153, 102, 255, 0.7)',
@@ -177,48 +216,49 @@
         });
         const mobileMenuButton = document.querySelector('.mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
 
         // Script Untuk Togle Penduduk Terakhir di Input -->
         document.addEventListener('DOMContentLoaded', function() {
             const tableToggle = document.getElementById('tableToggle');
             const tableContainer = document.getElementById('tableContainer');
-            
-            tableToggle.addEventListener('change', function() {
-                if (this.checked) {
-                    tableContainer.style.maxHeight = tableContainer.scrollHeight + 'px';
-                    tableContainer.style.opacity = '1';
-                    tableContainer.style.visibility = 'visible';
-                } else {
-                    tableContainer.style.maxHeight = '0';
-                    tableContainer.style.opacity = '0';
-                    tableContainer.style.visibility = 'hidden';
-                }
-            });
-
-            // Initialize table state
-            tableContainer.style.maxHeight = tableContainer.scrollHeight + 'px';
-            tableContainer.style.opacity = '1';
-            tableContainer.style.visibility = 'visible';
+            if (tableToggle && tableContainer) {
+                tableToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        tableContainer.style.maxHeight = tableContainer.scrollHeight + 'px';
+                        tableContainer.style.opacity = '1';
+                        tableContainer.style.visibility = 'visible';
+                    } else {
+                        tableContainer.style.maxHeight = '0';
+                        tableContainer.style.opacity = '0';
+                        tableContainer.style.visibility = 'hidden';
+                    }
+                });
+                // Initialize table state
+                tableContainer.style.maxHeight = tableContainer.scrollHeight + 'px';
+                tableContainer.style.opacity = '1';
+                tableContainer.style.visibility = 'visible';
+            }
         });
 
         <!-- Tambahkan script untuk chart di bagian scripts -->
         // Maternal Health Chart
-        const maternalCtx = document.getElementById('maternalChart').getContext('2d');
-        new Chart(maternalCtx, {
+        const maternalEl = document.getElementById('maternalChart');
+        if (maternalEl) new Chart(maternalEl.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: ['Menggunakan KB', 'Tidak Menggunakan KB', 'Ibu Hamil', 'Bersalin di Faskes'],
                 datasets: [{
                     label: 'Jumlah',
                     data: [
-                        {{ $maternalStats['kb_count'] }},
-                        {{ $maternalStats['no_kb_count'] }},
-                        {{ $maternalStats['pregnant_count'] }},
-                        {{ $maternalStats['health_facility_birth_count'] }}
+                        {{ $maternalStats['kb_count'] ?? 0 }},
+                        {{ $maternalStats['no_kb_count'] ?? 0 }},
+                        {{ $maternalStats['pregnant_count'] ?? 0 }},
+                        {{ $maternalStats['health_facility_birth_count'] ?? 0 }}
                     ],
                     backgroundColor: [
                         'rgba(233, 30, 99, 0.7)',
@@ -241,17 +281,17 @@
         });
 
         // Child Health Chart
-        const childCtx = document.getElementById('childChart').getContext('2d');
-        new Chart(childCtx, {
+        const childEl = document.getElementById('childChart');
+        if (childEl) new Chart(childEl.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: ['ASI Eksklusif', 'Imunisasi Lengkap', 'Pemantauan Pertumbuhan'],
                 datasets: [{
                     label: 'Jumlah',
                     data: [
-                        {{ $childStats['exclusive_breastfeeding_count'] }},
-                        {{ $childStats['complete_immunization_count'] }},
-                        {{ $childStats['growth_monitoring_count'] }}
+                        {{ $childStats['exclusive_breastfeeding_count'] ?? 0 }},
+                        {{ $childStats['complete_immunization_count'] ?? 0 }},
+                        {{ $childStats['growth_monitoring_count'] ?? 0 }}
                     ],
                     backgroundColor: [
                         'rgba(33, 150, 243, 0.7)',
@@ -273,8 +313,8 @@
         });
 
         // Inisialisasi chart JKN by Village
-        const jknByVillageCtx = document.getElementById('jknByVillageChart').getContext('2d');
-        const jknByVillageChart = new Chart(jknByVillageCtx, {
+        const jknByVillageEl = document.getElementById('jknByVillageChart');
+        if (jknByVillageEl) new Chart(jknByVillageEl.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: {!! json_encode(isset($jknByVillage) ? $jknByVillage->pluck('name') : []) !!},
@@ -298,15 +338,15 @@
         });
 
         // Inisialisasi chart JKN Overview
-        const jknOverviewCtx = document.getElementById('jknOverviewChart').getContext('2d');
-        const jknOverviewChart = new Chart(jknOverviewCtx, {
+        const jknOverviewEl = document.getElementById('jknOverviewChart');
+        if (jknOverviewEl) new Chart(jknOverviewEl.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: ['Memiliki JKN', 'Tidak Memiliki JKN'],
                 datasets: [{
                     data: [
-                        {{ $jknStats['jkn_count'] }}, 
-                        {{ $jknStats['members'] - $jknStats['jkn_count'] }}
+                        {{ $jknStats['jkn_count'] ?? 0 }}, 
+                        {{ ($jknStats['members'] ?? 0) - ($jknStats['jkn_count'] ?? 0) }}
                     ],
                     backgroundColor: [
                         'rgba(75, 192, 192, 0.6)',

@@ -61,6 +61,14 @@
                 
                 <!-- Action Buttons - Compact -->
                 <div class="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-2">
+                    @php
+                        $building = optional($familyMember->family)->building;
+                        $lat = $building->latitude ?? null;
+                        $lon = $building->longitude ?? null;
+                        $hasCoords = is_numeric($lat) && is_numeric($lon);
+                        $canViewMedicalHistory = auth()->check() && auth()->user()->hasAnyRole(['nakes', 'super_admin']);
+                    @endphp
+
                     <a href="{{ route('families.card.member', $familyMember) }}" 
                        class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,6 +93,30 @@
                         </svg>
                         Cetak
                     </button>
+
+                    @if($building)
+                        @if($hasCoords)
+                            <a href="{{ url('/map-vue') }}?lat={{ $lat }}&lon={{ $lon }}&zoom=20&id={{ $building->id }}" target="_blank"
+                               class="inline-flex items-center px-3 py-2 bg-emerald-600 text-white text-sm rounded-md hover:bg-emerald-700 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                Lihat Lokasi di Peta
+                            </a>
+                        @else
+                            <button type="button"
+                                    onclick="alert('Lokasi rumah belum memiliki koordinat. Mohon lengkapi latitude/longitude di data bangunan.')"
+                                    class="inline-flex items-center px-3 py-2 bg-gray-300 text-gray-600 text-sm rounded-md cursor-not-allowed"
+                                    title="Koordinat belum tersedia">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                                Lihat Lokasi di Peta
+                            </button>
+                        @endif
+                    @endif
                 </div>
             </header>
 
@@ -113,7 +145,6 @@
                             </svg>
                             Data Pribadi
                         </h3>
-                        <!-- Tambahkan di bagian action buttons -->
                         <a href="{{ route('medical-records.index', $familyMember) }}" class="inline-flex items-center px-4 py-2 bg-green-600 border-transparent rounded-md text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v8l4-2 4 2V6z" clip-rule="evenodd" />
@@ -233,28 +264,38 @@
                                         <span>{{ $familyMember->is_smoker ? 'Perokok' : 'Tidak Merokok' }}</span>
                                     </li>
                                     <li class="flex items-center">
-                                        <span class="w-6 h-6 flex-shrink-0 mr-2 {{ $familyMember->has_tuberculosis ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} rounded-full flex items-center justify-center text-xs font-medium">
-                                            {{ $familyMember->has_tuberculosis ? '!' : '✓' }}
-                                        </span>
-                                        <span>
-                                            @if($familyMember->has_tuberculosis)
-                                                TBC {{ $familyMember->takes_tb_medication_regularly ? '(Minum Obat Teratur)' : '(Tidak Teratur)' }}
-                                            @else
-                                                Tidak TBC
-                                            @endif
-                                        </span>
+                                        @if($canViewMedicalHistory)
+                                            <span class="w-6 h-6 flex-shrink-0 mr-2 {{ $familyMember->has_tuberculosis ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} rounded-full flex items-center justify-center text-xs font-medium">
+                                                {{ $familyMember->has_tuberculosis ? '!' : '✓' }}
+                                            </span>
+                                            <span>
+                                                @if($familyMember->has_tuberculosis)
+                                                    TBC {{ $familyMember->takes_tb_medication_regularly ? '(Minum Obat Teratur)' : '(Tidak Teratur)' }}
+                                                @else
+                                                    Tidak TBC
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="w-6 h-6 flex-shrink-0 mr-2 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs font-medium">?</span>
+                                            <span class="text-sm text-gray-500 italic">Informasi TBC khusus untuk tenaga kesehatan</span>
+                                        @endif
                                     </li>
                                     <li class="flex items-center">
-                                        <span class="w-6 h-6 flex-shrink-0 mr-2 {{ $familyMember->has_hypertension ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} rounded-full flex items-center justify-center text-xs font-medium">
-                                            {{ $familyMember->has_hypertension ? '!' : '✓' }}
-                                        </span>
-                                        <span>
-                                            @if($familyMember->has_hypertension)
-                                                Hipertensi {{ $familyMember->takes_hypertension_medication_regularly ? '(Minum Obat Teratur)' : '(Tidak Teratur)' }}
-                                            @else
-                                                Tidak Hipertensi
-                                            @endif
-                                        </span>
+                                        @if($canViewMedicalHistory)
+                                            <span class="w-6 h-6 flex-shrink-0 mr-2 {{ $familyMember->has_hypertension ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} rounded-full flex items-center justify-center text-xs font-medium">
+                                                {{ $familyMember->has_hypertension ? '!' : '✓' }}
+                                            </span>
+                                            <span>
+                                                @if($familyMember->has_hypertension)
+                                                    Hipertensi {{ $familyMember->takes_hypertension_medication_regularly ? '(Minum Obat Teratur)' : '(Tidak Teratur)' }}
+                                                @else
+                                                    Tidak Hipertensi
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="w-6 h-6 flex-shrink-0 mr-2 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs font-medium">?</span>
+                                            <span class="text-sm text-gray-500 italic">Informasi hipertensi khusus untuk tenaga kesehatan</span>
+                                        @endif
                                     </li>
                                 </ul>
                             </div>

@@ -32,6 +32,19 @@ class MedicalRecord extends Model
         'completed_at',
         'assigned_to',
         'queue_position',
+        // Queue management fields
+        'queue_number',
+        'priority_level',
+        'estimated_service_time',
+        'current_role_handler',
+        'registration_start_time',
+        'registration_end_time',
+        'nurse_start_time',
+        'nurse_end_time',
+        'doctor_start_time',
+        'doctor_end_time',
+        'pharmacy_start_time',
+        'pharmacy_end_time',
         // Patient identity fields (denormalized)
         'patient_name',
         'patient_address',
@@ -48,6 +61,14 @@ class MedicalRecord extends Model
         'queued_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'registration_start_time' => 'datetime',
+        'registration_end_time' => 'datetime',
+        'nurse_start_time' => 'datetime',
+        'nurse_end_time' => 'datetime',
+        'doctor_start_time' => 'datetime',
+        'doctor_end_time' => 'datetime',
+        'pharmacy_start_time' => 'datetime',
+        'pharmacy_end_time' => 'datetime',
     ];
 
     /**
@@ -72,6 +93,14 @@ class MedicalRecord extends Model
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * Get the user who currently handles this record in the active role.
+     */
+    public function currentHandler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'current_role_handler');
     }
 
     /**
@@ -350,9 +379,16 @@ class MedicalRecord extends Model
                 $line .= " - {$usage->quantity_used} {$usage->medicine->unit}";
             }
             
-            // Instruction in parentheses
-            if ($usage->instruction_text) {
-                $line .= " ({$usage->instruction_text})";
+            // Prefer pharmacist-provided frequency (e.g., 3x1),
+            // fallback to instruction_text (e.g., 3dd1) converted to 3x1.
+            $display = null;
+            if (!empty($usage->frequency)) {
+                $display = $usage->frequency;
+            } elseif (!empty($usage->instruction_text)) {
+                $display = self::instructionToShortFrequency($usage->instruction_text) ?? $usage->instruction_text;
+            }
+            if ($display) {
+                $line .= " ({$display})";
             }
             
             // Notes if available
@@ -366,6 +402,45 @@ class MedicalRecord extends Model
         }
 
         return implode("\n", $medicationLines);
+    }
+
+    /**
+     * Convert common Indonesian instruction format, e.g., "3dd1" -> "3x1".
+     */
+    public static function instructionToShortFrequency(?string $instr): ?string
+    {
+        if (empty($instr)) return null;
+        if (preg_match('/^\s*(\d+)\s*dd\s*(\d+)\s*$/i', $instr, $m)) {
+            return $m[1] . 'x' . $m[2];
+        }
+        if (preg_match('/(\d+)\s*d+\s*(\d+)/i', $instr, $m)) {
+            return $m[1] . 'x' . $m[2];
+        }
+        return null;
+    }
+
+    /**
+     * Generate next queue number for a given date.
+     * Format: YYYY-MM-DD-XXX (incremental per day, based on queue_number prefix).
+     */
+    public static function generateQueueNumberForDate($date): string
+    {
+        $day = \Carbon\Carbon::parse($date)->format('Y-m-d');
+        // Use prefix match on queue_number to avoid relying on visit_date consistency
+        $last = self::where('queue_number', 'like', $day . '-%')
+            ->orderByRaw('CAST(SUBSTRING(queue_number, -3) AS UNSIGNED) DESC')
+            ->first();
+        if (!$last) return $day . '-001';
+        $lastNumber = intval(substr($last->queue_number, -3));
+        return $day . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Backward-compatible helper: generate next queue number for today.
+     */
+    public static function generateQueueNumber(): string
+    {
+        return self::generateQueueNumberForDate(now());
     }
 
     /**

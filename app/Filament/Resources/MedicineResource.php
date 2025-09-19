@@ -72,7 +72,13 @@ class MedicineResource extends Resource
                             ->default(0)
                             ->required()
                             ->minValue(0),
-                        
+
+                        Forms\Components\TextInput::make('stock_initial')
+                            ->label('Stok Awal')
+                            ->numeric()
+                            ->minValue(0)
+                            ->helperText('Kosongkan untuk menggunakan nilai stok saat ini sebagai stok awal'),
+
                         Forms\Components\TextInput::make('minimum_stock')
                             ->label('Stok Minimum')
                             ->numeric()
@@ -118,6 +124,10 @@ class MedicineResource extends Resource
                     ->sortable()
                     ->color(fn ($record) => $record->isOutOfStock() ? 'danger' : ($record->isLowStock() ? 'warning' : 'success'))
                     ->weight(fn ($record) => $record->isLowStock() ? 'bold' : 'normal'),
+
+                TextColumn::make('stock_initial')
+                    ->label('Stok Awal')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 
                 BadgeColumn::make('stock_status')
                     ->label('Status Stok')

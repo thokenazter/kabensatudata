@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -225,6 +226,26 @@ class ChatbotController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error processing PDF: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function syncAppKnowledge(Request $request)
+    {
+        try {
+            Artisan::call('chatbot:sync-app-knowledge');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengetahuan aplikasi berhasil disinkronkan.',
+                'artisan_output' => trim(Artisan::output()),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Chatbot knowledge sync error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyinkronkan pengetahuan aplikasi: ' . $e->getMessage(),
             ], 500);
         }
     }

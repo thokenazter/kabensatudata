@@ -211,7 +211,7 @@
                     <a href="{{ route('medical-records.show', [$familyMember, $record]) }}"
                        class="group inline-flex items-center gap-1 rounded-lg px-2 py-1 text-blue-600 transition hover:bg-blue-50 hover:text-blue-800" 
                        title="Detail"
-                       @click="openModal('{{ route('medical-records.show', [$familyMember, $record]) }}', $event)">
+                       @click.prevent="openModal('{{ route('medical-records.show', [$familyMember, $record]) }}')">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M10 3C5.5 3 1.73 6.11.46 10c1.27 3.89 5.04 7 9.54 7s8.27-3.11 9.54-7C18.27 6.11 14.5 3 10 3zm0 10a3 3 0 110-6 3 3 0 010 6z"/>
                       </svg>
@@ -277,6 +277,7 @@
        x-transition:leave-start="opacity-100"
        x-transition:leave-end="opacity-0"
        class="fixed inset-0 z-50 overflow-y-auto"
+       x-trap.noscroll="isOpen"
        role="dialog"
        aria-modal="true"
        x-cloak
@@ -303,7 +304,8 @@
           <h2 class="text-lg font-semibold text-white">Detail Rekam Medis</h2>
           <button @click="closeModal()"
                   class="text-white hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-lg p-1"
-                  aria-label="Tutup modal">
+                  aria-label="Tutup modal"
+                  x-ref="closeButton">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -327,10 +329,18 @@
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-1">Gagal memuat data</h3>
             <p class="text-gray-600" x-text="error"></p>
-            <button @click="closeModal()" 
-                    class="mt-4 inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-              Tutup
-            </button>
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
+              <template x-if="fallbackUrl">
+                <a :href="fallbackUrl"
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Buka Halaman Detail
+                </a>
+              </template>
+              <button @click="closeModal()" 
+                      class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -345,53 +355,84 @@
         content: '',
         error: '',
         cache: new Map(),
+        activeUrl: null,
+        abortController: null,
+        fallbackUrl: null,
         
-        async openModal(url, event) {
+        async openModal(rawUrl, event) {
           // Progressive enhancement: prevent default only if JS is enabled
           if (event) {
             event.preventDefault();
           }
           
+          const requestUrl = new URL(rawUrl, window.location.origin);
+          requestUrl.searchParams.set('partial', '1');
+          const finalUrl = requestUrl.toString();
+
           this.isOpen = true;
           this.loading = true;
           this.error = '';
           this.content = '';
+          this.fallbackUrl = null;
+          this.activeUrl = finalUrl;
+
+          if (this.abortController) {
+            this.abortController.abort();
+          }
+          this.abortController = new AbortController();
           
           // Focus management
           this.$nextTick(() => {
-            const closeButton = document.querySelector('[aria-label="Tutup modal"]');
-            if (closeButton) closeButton.focus();
+            const closeButton = this.$refs?.closeButton;
+            if (closeButton) {
+              closeButton.focus();
+            }
           });
           
           try {
             // Check cache first
-            if (this.cache.has(url)) {
-              this.content = this.cache.get(url);
+            if (this.cache.has(finalUrl)) {
+              this.content = this.cache.get(finalUrl);
               this.loading = false;
               return;
             }
             
             // Fetch content via AJAX
-            const response = await fetch(url + '?partial=1', {
+            const response = await fetch(finalUrl, {
               headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'text/html'
-              }
+              },
+              signal: this.abortController.signal,
+              credentials: 'same-origin',
             });
             
             if (!response.ok) {
+              if ([401, 403].includes(response.status)) {
+                window.location.href = rawUrl;
+                return;
+              }
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const html = await response.text();
             
+            if (this.activeUrl !== finalUrl) {
+              return;
+            }
+
             // Cache the content
-            this.cache.set(url, html);
+            this.cache.set(finalUrl, html);
             this.content = html;
             
           } catch (err) {
+            if (err.name === 'AbortError') {
+              return;
+            }
+
             console.error('Error loading modal content:', err);
             this.error = 'Terjadi kesalahan saat memuat data. Silakan coba lagi.';
+            this.fallbackUrl = rawUrl;
           } finally {
             this.loading = false;
           }
@@ -401,6 +442,12 @@
           this.isOpen = false;
           this.content = '';
           this.error = '';
+          this.fallbackUrl = null;
+          this.activeUrl = null;
+          if (this.abortController) {
+            this.abortController.abort();
+            this.abortController = null;
+          }
         }
       }
     }

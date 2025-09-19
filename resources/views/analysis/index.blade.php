@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PKM Kaben - Satu Data</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/iconsatudata.PNG') }}">
+    <link rel="shortcut icon" href="{{ asset('images/iconsatudata.PNG') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/iconsatudata.PNG') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         tailwind.config = {
             theme: {
@@ -269,39 +273,31 @@
     </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-800">
-    <!-- Navbar -->
-    <nav class="bg-white shadow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <button class="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-md p-1">
-                        <a href="/dashboard" class="flex items-center">
-                            <span class="text-xl font-bold text-white px-4 hover:scale-105 transition-all duration-300 flex items-center">
-                                <i class="fas fa-chart-line mr-2"></i>
-                                Dashboard
-                            </span>
-                        </a>
-                    </button>
-                    <h1 class="ml-4 text-xl font-semibold text-gray-700 hidden md:block">PKM Kaben - Satu Data</h1>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <span id="importInfoBadge" class="hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                        <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-primary-400" fill="currentColor" viewBox="0 0 8 8">
-                            <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        <span id="importInfoText">Data: -</span>
-                    </span>
-                    <button id="importFileBtn" class="bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 py-2 rounded-md hover:from-primary-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 btn-hover flex items-center shadow-md">
-                        <i class="fas fa-file-import mr-2"></i>
-                        Import Data
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
+    @include('includes.navbar')
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <main class="max-w-7xl mx-auto pt-24 pb-6 px-4 sm:px-6 lg:px-8">
+        {{-- <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <div class="flex items-center gap-3">
+                <a href="/dashboard" class="inline-flex items-center px-3 py-2 rounded-lg bg-gradient-to-r from-primary-600 to-secondary-600 text-white text-sm font-semibold shadow-md hover:from-primary-700 hover:to-secondary-700 transition">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    Dashboard
+                </a>
+                <h1 class="text-xl font-semibold text-gray-700">PKM Kaben - Satu Data</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="importInfoBadge" class="hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                    <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-primary-400" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="3" />
+                    </svg>
+                    <span id="importInfoText">Data: -</span>
+                </span>
+                <button id="importFileBtn" class="bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 py-2 rounded-md hover:from-primary-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 btn-hover flex items-center shadow-md">
+                    <i class="fas fa-file-import mr-2"></i>
+                    Import Data
+                </button>
+            </div>
+        </div> --}}
         <!-- Filter Section -->
         <div class="bg-white rounded-xl shadow-card p-6 mb-6 fade-in transition-all hover:shadow-card-hover">
             <div class="flex items-center mb-4">
@@ -556,12 +552,22 @@
                 
                 // Kumpulkan nilai filter
                 const filters = {};
-                $('select[name^="filters["], input[name^="filters["]:checked, input[name^="filters["]:text, input[type="hidden"][name^="filters["]').each(function() {
-                    const name = $(this).attr('name');
-                    const key = name.match(/filters\[(.*?)\]/)[1];
-                    const value = $(this).val();
-                    
-                    if (value !== '') {
+                $('[name^="filters["]').each(function() {
+                    const $el = $(this);
+                    const inputType = ($el.attr('type') || '').toLowerCase();
+
+                    if ((inputType === 'checkbox' || inputType === 'radio') && !$el.is(':checked')) {
+                        return;
+                    }
+
+                    const name = $el.attr('name');
+                    const match = name.match(/filters\[(.*?)\]/);
+                    if (!match) return;
+                    const key = match[1];
+                    const rawValue = $el.val();
+                    const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+
+                    if (value !== '' && value !== null && typeof value !== 'undefined') {
                         filters[key] = value;
                     }
                 });
@@ -1190,4 +1196,3 @@
     </script>
 </body>
 </html>
-

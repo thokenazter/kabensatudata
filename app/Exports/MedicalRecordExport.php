@@ -3,33 +3,36 @@
 namespace App\Exports;
 
 use App\Models\MedicalRecord;
+use App\Models\Medicine;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection as SupportCollection;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Events\BeforeExport;
+use Maatwebsite\Excel\Excel as ExcelFormat;
+use Maatwebsite\Excel\Files\LocalTemporaryFile;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use Carbon\Carbon;
 
-class MedicalRecordExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, WithColumnWidths, WithEvents, ShouldAutoSize, WithColumnFormatting
+class MedicalRecordExport implements FromCollection, WithMapping, WithEvents, WithColumnFormatting
 {
     protected $filters;
+    protected ?SupportCollection $records = null;
+    protected ?SupportCollection $medicineReport = null;
+    protected ?Carbon $medicineReportPeriod = null;
 
     public function __construct($filters = [])
     {
         $this->filters = $filters;
+        if (!empty($this->filters['medicine_report_month'])) {
+            $this->medicineReportPeriod = Carbon::parse($this->filters['medicine_report_month'])->startOfMonth();
+        }
     }
 
-    public function collection()
+    protected function buildQuery(): Builder
     {
         $query = MedicalRecord::with(['familyMember', 'creator']);
 
@@ -53,37 +56,42 @@ class MedicalRecordExport implements FromCollection, WithHeadings, WithMapping, 
             $query->where('workflow_status', $this->filters['workflow_status']);
         }
 
-        return $query->orderBy('visit_date', 'desc')->get();
+        return $query->orderBy('visit_date', 'desc');
     }
 
-    public function headings(): array
+    public function collection()
     {
-        return [
-            'Tanggal Kunjungan',
-            'NIK',
-            'Nama Pasien',
-            'No. RM',
-            'Jenis Kelamin',
-            'Tanggal Lahir',
-            'Alamat',
-            'Keluhan Utama',
-            'Anamnesis',
-            'Tekanan Darah Sistolik',
-            'Tekanan Darah Diastolik',
-            'Kategori Tekanan Darah',
-            'Berat Badan (kg)',
-            'Tinggi Badan (cm)',
-            'Detak Jantung (bpm)',
-            'Suhu Tubuh (C)',
-            'Laju Pernapasan (/menit)',
-            'Kode Diagnosis (ICD)',
-            'Nama Diagnosis',
-            'Terapi Obat',
-            'Tindakan',
-            'Dibuat Oleh',
-            'Status Workflow',
-            'Tanggal Dibuat',
-        ];
+        if ($this->records === null) {
+            $this->records = $this->buildQuery()->get();
+        }
+
+        return $this->records;
+    }
+
+    protected function medicineReport(): SupportCollection
+    {
+        if ($this->medicineReport === null) {
+            $period = $this->getMedicineReportPeriod();
+            $periodString = $period->toDateString();
+
+            $this->medicineReport = Medicine::query()
+                ->with(['monthlyStocks' => function ($query) use ($periodString) {
+                    $query->where('period_start', $periodString);
+                }])
+                ->orderBy('name')
+                ->get();
+        }
+
+        return $this->medicineReport;
+    }
+
+    protected function getMedicineReportPeriod(): Carbon
+    {
+        if ($this->medicineReportPeriod) {
+            return $this->medicineReportPeriod;
+        }
+
+        return $this->medicineReportPeriod = now()->startOfMonth();
     }
 
     public function map($medicalRecord): array
@@ -154,59 +162,6 @@ class MedicalRecordExport implements FromCollection, WithHeadings, WithMapping, 
         ];
     }
 
-
-    public function styles(Worksheet $sheet)
-    {
-        return [
-            // Header row styling (row 4 after inserting 3 rows at top)
-            4 => [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['argb' => 'FFFFFFFF']],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FF4472C4'],
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER,
-                ],
-            ],
-        ];
-    }
-
-    public function title(): string
-    {
-        return 'Data Rekam Medis';
-    }
-
-    public function columnWidths(): array
-    {
-        return [
-            'A' => 15,  // Tanggal Kunjungan
-            'B' => 20,  // NIK
-            'C' => 25,  // Nama Pasien
-            'D' => 15,  // No. RM
-            'E' => 15,  // Jenis Kelamin
-            'F' => 15,  // Tanggal Lahir
-            'G' => 40,  // Alamat
-            'H' => 30,  // Keluhan Utama
-            'I' => 40,  // Anamnesis
-            'J' => 12,  // Tekanan Darah Sistolik
-            'K' => 12,  // Tekanan Darah Diastolik
-            'L' => 20,  // Kategori Tekanan Darah
-            'M' => 12,  // Berat Badan (kg)
-            'N' => 12,  // Tinggi Badan (cm)
-            'O' => 12,  // Detak Jantung (bpm)
-            'P' => 12,  // Suhu Tubuh (C)
-            'Q' => 15,  // Laju Pernapasan (/menit)
-            'R' => 15,  // Kode Diagnosis (ICD)
-            'S' => 25,  // Nama Diagnosis
-            'T' => 35,  // Terapi Obat
-            'U' => 30,  // Tindakan
-            'V' => 20,  // Dibuat Oleh
-            'W' => 18,  // Tanggal Dibuat
-        ];
-    }
-
     public function columnFormats(): array
     {
         return [
@@ -218,60 +173,71 @@ class MedicalRecordExport implements FromCollection, WithHeadings, WithMapping, 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function (AfterSheet $event) {
-                $sheet = $event->sheet->getDelegate();
+            BeforeExport::class => function (BeforeExport $event) {
+                $templatePath = storage_path('app/templates/medical-records-template.xlsx');
 
-                $sheet->insertNewRowBefore(1, 3);
-                $sheet->setCellValue('A1', 'LAPORAN DATA REKAM MEDIS');
-                $sheet->setCellValue('A2', 'Tanggal Export: ' . Carbon::now()->format('d F Y H:i:s'));
-
-                $dataRowCount = $sheet->getHighestRow() - 4;
-                $sheet->setCellValue('A3', 'Total Data: ' . $dataRowCount . ' rekam medis');
-
-                $highestColumn = $sheet->getHighestColumn();
-                $highestRow = $sheet->getHighestRow();
-
-                $sheet->getStyle('A1')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 16],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ]);
-
-                $sheet->getStyle('A2:A3')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 10],
-                ]);
-
-                $sheet->mergeCells('A1:' . $highestColumn . '1');
-
-                // Apply borders to all data including header
-                $sheet->getStyle('A4:' . $highestColumn . $highestRow)->applyFromArray([
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['argb' => 'FF000000'],
-                        ],
-                    ],
-                ]);
-
-                // Ensure data rows have white background (excluding header row 4)
-                if ($highestRow > 4) {
-                    $sheet->getStyle('A5:' . $highestColumn . $highestRow)->applyFromArray([
-                        'fill' => [
-                            'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['argb' => 'FFFFFFFF'], // White background
-                        ],
-                        'alignment' => [
-                            'vertical' => Alignment::VERTICAL_CENTER,
-                        ],
-                    ]);
+                if (!file_exists($templatePath)) {
+                    throw new \RuntimeException('Template file not found at: ' . $templatePath);
                 }
 
-                $sheet->freezePane('A5');
-                $sheet->setAutoFilter('A4:' . $highestColumn . '4');
-                $sheet->getRowDimension('4')->setRowHeight(25);
+                $template = new LocalTemporaryFile($templatePath);
+                $event->writer->reopen($template, ExcelFormat::XLSX);
+                $event->writer->getSheetByIndex(0);
+            },
+            AfterSheet::class => function (AfterSheet $event) {
+                $defaultSheet = $event->sheet->getDelegate();
+                $spreadsheet = $defaultSheet->getParent();
 
-                // Force NIK and No. RM columns to be text format
-                $sheet->getStyle('B:B')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT); // NIK
-                $sheet->getStyle('D:D')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT); // No. RM
+                $records = $this->collection();
+                $recordSheet = $spreadsheet->getSheetByName('Data Rekam Medis') ?? $defaultSheet;
+                $recordRows = $records->map(fn ($record) => $this->map($record))->toArray();
+                if ($recordRows) {
+                    $recordSheet->fromArray($recordRows, null, 'A5');
+                }
+                $recordSheet->setCellValue('A2', 'Tanggal Export: ' . Carbon::now()->format('d F Y H:i:s'));
+                $recordSheet->setCellValue('A3', 'Total Data: ' . $records->count() . ' rekam medis');
+                $recordSheet->getStyle('B:B')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+                $recordSheet->getStyle('D:D')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
+                $medicineSheet = $spreadsheet->getSheetByName('Master Laporan Obat');
+                if ($medicineSheet) {
+                    $period = $this->getMedicineReportPeriod();
+                    $medicineSheet->setCellValue('B2', 'Periode: ' . $period->translatedFormat('F Y'));
+
+                    $medicineRows = $this->medicineReport()->map(function (Medicine $medicine) {
+                        $monthly = $medicine->monthlyStocks->first();
+
+                        if ($monthly) {
+                            $initial = $monthly->opening_stock;
+                            $closing = $monthly->closing_stock;
+                            $usage = $monthly->usage_quantity;
+                        } else {
+                            $initial = $medicine->stock_initial ?? $medicine->stock_quantity;
+                            $closing = $medicine->stock_quantity;
+                            $usage = max(0, $initial - $closing);
+                        }
+
+                        return [
+                            $medicine->full_name,
+                            $initial,
+                            $closing,
+                            $usage,
+                        ];
+                    })->toArray();
+
+                    if ($medicineRows) {
+                        $medicineSheet->fromArray($medicineRows, null, 'B4');
+                    }
+
+                    $medicineSheet->getStyle('C:C')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER);
+                    $medicineSheet->getStyle('D:D')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER);
+                    $medicineSheet->getStyle('E:E')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER);
+                }
+
+                if ($recordSheet !== $defaultSheet) {
+                    $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($defaultSheet));
+                    $spreadsheet->setActiveSheetIndex($spreadsheet->getIndex($recordSheet));
+                }
             },
         ];
     }

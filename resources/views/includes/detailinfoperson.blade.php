@@ -1,7 +1,7 @@
 <div class="mb-8 px-4">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8"> 
         <!-- Data Anggota Keluarga Terbaru -->
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+        {{-- <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-medium text-gray-900"></h3>
@@ -151,7 +151,7 @@
                     </div>
                 @endguest
             </div>
-        </div>
+        </div> --}}
 
          
         <div class="mt-4">

@@ -1,0 +1,75 @@
+=== SNAPSHOT INFORMASI SISTEM ===
+
+Data diringkas pada 2025-09-19 14:15:08 WIB.
+
+=== DASHBOARD /dashboard ===
+Total keluarga: 601, anggota keluarga: 2,156, bangunan: 486, desa: 5.
+Distribusi jenis kelamin: Laki-laki 1,116 (51.8%), Perempuan 1,040 (48.2%).
+Kelompok usia: 0-5 229 (10.6%), 6-12 323 (15%), 13-17 240 (11.1%), 18-30 466 (21.6%), 31-50 481 (22.3%), >50 417 (19.3%).
+Pendidikan terbanyak: Tamat SD/MI (735), Tamat SMA/MA/SMK (310), Tamat SMP/MTs (250), Tidak Tamat SD/MI (220), Tidak Pernah Sekolah (49).
+Anggota keluarga terbaru:
+- Irani Tunyanan, 30 th, Perempuan, Desa Kompane, ditambahkan 2025-09-16 15:37
+- Ulva Gwal-Gwal, 1 th, Perempuan, Desa Kompane, ditambahkan 2025-09-16 15:19
+- Armin H. Sanay, 38 th, Laki-laki, Desa Kompane, ditambahkan 2025-09-16 15:03
+- Djafar Rahayaan, 55 th, Laki-laki, Desa Kompane, ditambahkan 2025-09-16 15:00
+- Gadil, 39 th, Perempuan, Desa Kompane, ditambahkan 2025-09-16 14:51
+
+=== STATISTIK KESEHATAN ===
+Rekap kasus anggota keluarga:
+- Tuberkulosis: 54
+- Hipertensi: 79
+- Batuk kronis: 31
+- Gangguan jiwa dalam keluarga: 6
+- Anggota keluarga dipasung: 0
+
+=== KESEHATAN IBU & ANAK ===
+Indikator kesehatan ibu:
+- Peserta KB aktif: 64
+- Tidak menggunakan KB: 250
+- Ibu hamil tercatat: 11
+- Persalinan di fasilitas kesehatan: 4
+Indikator kesehatan anak:
+- ASI eksklusif: 29
+- Imunisasi lengkap: 19
+- Pemantauan tumbuh kembang: 80
+
+=== SANITASI RUMAH TANGGA ===
+Keluarga dengan akses air bersih: 310 (51.6%).
+Keluarga dengan sumber air terlindungi: 114 (36.8% dari keluarga yang memiliki air bersih).
+Keluarga dengan jamban keluarga: 161 (26.8%).
+Jamban sehat: 53 (32.9% dari keluarga yang memiliki jamban).
+
+=== KEPESERTAAN JKN ===
+Anggota dengan JKN: 955 dari 2,156 anggota (44.3%).
+Cakupan JKN tertinggi:
+- Desa Benjuring: 55.2% (227 dari 411 anggota).
+- Desa Kompane: 49.9% (200 dari 401 anggota).
+- Desa Kumul: 44.1% (262 dari 594 anggota).
+- Desa Kabalsiang: 36.2% (200 dari 553 anggota).
+- Desa Batuley: 33.5% (66 dari 197 anggota).
+
+=== RINGKASAN DESA ===
+- Desa Kumul: 126 bangunan, 155 keluarga, 594 anggota. Air bersih: 28.4%, jamban sehat: 3.9%.
+- Desa Kabalsiang: 121 bangunan, 152 keluarga, 553 anggota. Air bersih: 62.5%, jamban sehat: 8.6%.
+- Desa Benjuring: 93 bangunan, 117 keluarga, 411 anggota. Air bersih: 78.6%, jamban sehat: 6.8%.
+- Desa Kompane: 92 bangunan, 118 keluarga, 401 anggota. Air bersih: 33.9%, jamban sehat: 13.6%.
+- Desa Batuley: 54 bangunan, 59 keluarga, 197 anggota. Air bersih: 66.1%, jamban sehat: 16.9%.
+
+=== REKAM MEDIS /medical-records ===
+Status antrean: completed: 26.
+Diagnosis terbanyak: ISPA (4), Dermatitis (4), Gastritis (2), HT Urgency (2), Myalgia (2).
+5 rekam medis terbaru:
+- 2025-09-16, Usman Selmona, Diagnosis Hipertensi Urgency, Status completed
+- 2025-09-01, Lamani Kalidupa, Diagnosis HT, Status completed
+- 2025-09-01, Hapsa Halim, Status completed
+- 2025-09-01, Siti Selra, Diagnosis HT Urgency, Status completed
+- 2025-09-01, Ida Rahayaan, Diagnosis Myalgia, Status completed
+
+=== OBAT /medicines ===
+Total jenis obat aktif: 35.
+Obat stok menipis: 4, stok habis: 0.
+Daftar stok menipis (maksimal 5 item):
+- Betamethasone Cream 0,1 %: stok 10 tube, batas minimum 10.
+- Cetirizine Sirup: stok 7 botol, batas minimum 10.
+- Channafit sirup oral albumin: stok 3 botol, batas minimum 10.
+- Fibumin Plus: stok 6 botol, batas minimum 10.

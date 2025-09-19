@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\MedicineStockTracker;
+use Carbon\Carbon;
 
 class MedicineUsage extends Model
 {
@@ -66,29 +68,74 @@ class MedicineUsage extends Model
         // Reduce medicine stock when creating usage
         static::created(function ($medicineUsage) {
             $medicineUsage->medicine->reduceStock($medicineUsage->quantity_used);
+            MedicineStockTracker::adjustUsage(
+                $medicineUsage->medicine,
+                static::resolveUsageDate($medicineUsage),
+                $medicineUsage->quantity_used
+            );
         });
 
         // Handle stock changes when updating usage
         static::updating(function ($medicineUsage) {
             $original = $medicineUsage->getOriginal();
-            
+
             if ($medicineUsage->isDirty('quantity_used') || $medicineUsage->isDirty('medicine_id')) {
                 // Restore original stock if medicine or quantity changed
                 if (isset($original['medicine_id']) && isset($original['quantity_used'])) {
                     $originalMedicine = Medicine::find($original['medicine_id']);
                     if ($originalMedicine) {
                         $originalMedicine->addStock($original['quantity_used']);
+                        MedicineStockTracker::adjustUsage(
+                            $originalMedicine,
+                            static::resolveOriginalUsageDate($original['medical_record_id'] ?? null, $original['created_at'] ?? null),
+                            -$original['quantity_used']
+                        );
                     }
                 }
-                
+
                 // Reduce new stock
                 $medicineUsage->medicine->reduceStock($medicineUsage->quantity_used);
             }
         });
 
+        static::updated(function ($medicineUsage) {
+            MedicineStockTracker::adjustUsage(
+                $medicineUsage->medicine,
+                static::resolveUsageDate($medicineUsage),
+                $medicineUsage->quantity_used
+            );
+        });
+
         // Restore stock when deleting usage
         static::deleting(function ($medicineUsage) {
             $medicineUsage->medicine->addStock($medicineUsage->quantity_used);
+            MedicineStockTracker::adjustUsage(
+                $medicineUsage->medicine,
+                static::resolveUsageDate($medicineUsage),
+                -$medicineUsage->quantity_used
+            );
         });
+    }
+
+    protected static function resolveUsageDate(self $usage): Carbon
+    {
+        $record = $usage->medicalRecord;
+        if ($record && $record->visit_date) {
+            return $record->visit_date->copy();
+        }
+
+        return Carbon::parse($usage->created_at);
+    }
+
+    protected static function resolveOriginalUsageDate(?int $medicalRecordId, ?string $createdAt): Carbon
+    {
+        if ($medicalRecordId) {
+            $record = MedicalRecord::find($medicalRecordId);
+            if ($record && $record->visit_date) {
+                return $record->visit_date->copy();
+            }
+        }
+
+        return Carbon::parse($createdAt ?? now());
     }
 }

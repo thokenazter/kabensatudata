@@ -19,10 +19,7 @@
   </script>
 </head>
 <body class="min-h-full bg-gray-50 text-gray-800 antialiased">
-    @if(request()->boolean('partial'))
-  @include('medical-records._detail_content', ['medicalRecord' => $medicalRecord, 'familyMember' => $familyMember])
-  @php(exit) @endphp
-@endif
+    
 
   <!-- Navigation -->
   {{-- @include('includes.navbar') --}}

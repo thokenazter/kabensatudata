@@ -69,6 +69,16 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
+        // Aliaskan middleware Spatie Permission agar dapat dipakai sebagai 'role', 'permission', dan 'role_or_permission'
+        if ($this->app->bound('router')) {
+            $router = $this->app->make('router');
+            if (method_exists($router, 'aliasMiddleware')) {
+                $router->aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
+                $router->aliasMiddleware('permission', \Spatie\Permission\Middleware\PermissionMiddleware::class);
+                $router->aliasMiddleware('role_or_permission', \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class);
+            }
+        }
+
         // Catatan: ClockMiddleware perlu didaftarkan di app/Http/Middleware.php atau route secara manual
     }
 }

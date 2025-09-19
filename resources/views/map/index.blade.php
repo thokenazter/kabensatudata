@@ -1850,118 +1850,6 @@
     </nav>
 
     <div id="mapContainer"></div>
-    
-    <!-- Health Dashboard Panel -->
-    {{-- <div class="health-dashboard" id="healthDashboard">
-        <div class="dashboard-header">
-            <h3>Dashboard Kesehatan</h3>
-            <button id="toggleDashboardBtn" class="toggle-dashboard-btn" aria-label="Toggle Dashboard">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-        </div>
-        <div class="dashboard-content">
-            <div class="dashboard-section">
-                <h4>Indeks Keluarga Sehat (IKS)</h4>
-                <div class="iks-chart-container">
-                    <canvas id="iksDonutChart"></canvas>
-                    <div class="iks-summary">
-                        <div class="iks-avg">
-                            <span class="iks-label">Rata-rata IKS</span>
-                            <span class="iks-value" id="iksAvgValue">0.54</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="family-health-categories">
-                    <div class="health-category healthy">
-                        <span class="category-label">Sehat</span>
-                        <span class="category-value" id="healthyCategoryValue">45%</span>
-                    </div>
-                    <div class="health-category pra-healthy">
-                        <span class="category-label">Pra-Sehat</span>
-                        <span class="category-value" id="praHealthyCategoryValue">35%</span>
-                    </div>
-                    <div class="health-category unhealthy">
-                        <span class="category-label">Tidak Sehat</span>
-                        <span class="category-value" id="unhealthyCategoryValue">20%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="dashboard-section">
-                <h4>Indikator PIS-PK</h4>
-                <div class="indicators-chart-container">
-                    <canvas id="indicatorsBarChart"></canvas>
-                </div>
-            </div>
-            
-            <div class="dashboard-section">
-                <h4>Statistik Area</h4>
-                <div class="area-stats">
-                    <div class="stat-item">
-                        <div class="stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                            </svg>
-                        </div>
-                        <div class="stat-label">Jumlah Rumah</div>
-                        <div class="stat-value" id="housesCountValue">175</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-label">Jumlah Keluarga</div>
-                        <div class="stat-value" id="familiesCountValue">243</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="stat-label">Jumlah Anggota</div>
-                        <div class="stat-value" id="membersCountValue">876</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-label">Kunjungan Bulan Ini</div>
-                        <div class="stat-value" id="visitsCountValue">45</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="dashboard-section">
-                <h4>Prioritas Kunjungan</h4>
-                <div class="priority-visits">
-                    <div class="priority-type high">
-                        <div class="priority-count" id="highPriorityCount">12</div>
-                        <div class="priority-label">Prioritas Tinggi</div>
-                    </div>
-                    <div class="priority-type medium">
-                        <div class="priority-count" id="mediumPriorityCount">28</div>
-                        <div class="priority-label">Prioritas Sedang</div>
-                    </div>
-                    <div class="priority-type low">
-                        <div class="priority-count" id="lowPriorityCount">67</div>
-                        <div class="priority-label">Prioritas Rendah</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> --}}
 
     <!-- Left Side Controls -->
     <div class="map-left-controls">
@@ -2151,7 +2039,7 @@ const PkmKabenApp = {
             buildingDetail: '/map/buildings/'
         },
         mapSettings: {
-            defaultView: [-5.7465, 134.797032],
+            defaultView: [-5.739483493261797, 134.79414177089714],
             defaultZoom: 15,
             maxZoom: 25
         },

@@ -23,7 +23,7 @@
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto">
             <div class="chat-message bot">
                 <div class="bg-gray-100 rounded-lg p-3 max-w-[80%] inline-block">
-                    <p>Hello! I'm your health assistant. How can I help you today?</p>
+                    <p>Halo, selamat datang di Aplikasi Kaben Satu Data. Ada yang bisa saya bantu?</p>
                 </div>
             </div>
         </div>

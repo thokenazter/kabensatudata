@@ -35,21 +35,10 @@ class MedicalRecordResource extends Resource
     protected static ?string $navigationLabel = 'Rekam Medis';
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    /** Helper: generate nomor antrian otomatis */
-    protected static function generateQueueNumber(): string
+    /** Helper: generate nomor antrian otomatis untuk tanggal tertentu */
+    protected static function generateQueueNumberFor($date): string
     {
-        $today = now()->format('Y-m-d');
-        $lastQueue = MedicalRecord::whereDate('visit_date', $today)
-            ->whereNotNull('queue_number')
-            ->orderByRaw('CAST(SUBSTRING(queue_number, -3) AS UNSIGNED) DESC')
-            ->first();
-
-        if (!$lastQueue) {
-            return $today . '-001';
-        }
-
-        $lastNumber = intval(substr($lastQueue->queue_number, -3));
-        return $today . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        return MedicalRecord::generateQueueNumberForDate($date);
     }
 
     /** Helper: parse "3dd1" → "3x1" (umum: {n}dd{m} → "{n}x{m}") */
@@ -172,7 +161,7 @@ class MedicalRecordResource extends Resource
                         Forms\Components\Grid::make(3)->schema([
                             Forms\Components\TextInput::make('queue_number')
                                 ->label('Nomor Antrian')
-                                ->default(fn() => self::generateQueueNumber())
+                                ->default(fn(callable $get) => self::generateQueueNumberFor($get('visit_date') ?? now()))
                                 ->disabled()
                                 ->dehydrated()
                                 ->prefix('🎯')
@@ -388,7 +377,14 @@ class MedicalRecordResource extends Resource
                                         $set('patient_address', $addr);
                                     }
                                 }),
-                            Forms\Components\DatePicker::make('visit_date')->required()->default(now())->label('Tanggal Kunjungan'),
+                            Forms\Components\DatePicker::make('visit_date')
+                                ->required()
+                                ->default(now())
+                                ->label('Tanggal Kunjungan')
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    $set('queue_number', self::generateQueueNumberFor($state ?: now()));
+                                }),
                         ]),
                         Forms\Components\Grid::make(3)->schema([
                             Forms\Components\TextInput::make('patient_name')->label('Nama Pasien')->disabled()->dehydrated(),
@@ -879,6 +875,12 @@ class MedicalRecordResource extends Resource
                                             ->searchable()
                                             ->placeholder('Semua'),
                                     ]),
+                                Forms\Components\DatePicker::make('medicine_report_month')
+                                    ->label('Bulan Laporan Obat')
+                                    ->displayFormat('F Y')
+                                    ->default(now())
+                                    ->native(false)
+                                    ->helperText('Menentukan stok awal & pemakaian obat untuk bulan yang dipilih'),
                             ]),
                     ])
                     ->action(function (array $data) {
@@ -933,6 +935,12 @@ class MedicalRecordResource extends Resource
                                             ->searchable()
                                             ->placeholder('Semua'),
                                     ]),
+                                Forms\Components\DatePicker::make('medicine_report_month')
+                                    ->label('Bulan Laporan Obat')
+                                    ->displayFormat('F Y')
+                                    ->default(now())
+                                    ->native(false)
+                                    ->helperText('Menentukan stok awal & pemakaian obat untuk bulan yang dipilih'),
                             ]),
                     ])
                     ->action(function (array $data) {
@@ -987,6 +995,12 @@ class MedicalRecordResource extends Resource
                                             ->searchable()
                                             ->placeholder('Semua'),
                                     ]),
+                                Forms\Components\DatePicker::make('medicine_report_month')
+                                    ->label('Bulan Laporan Obat')
+                                    ->displayFormat('F Y')
+                                    ->default(now())
+                                    ->native(false)
+                                    ->helperText('Menentukan stok awal & pemakaian obat untuk bulan yang dipilih'),
                             ]),
                     ])
                     ->action(function (array $data) {

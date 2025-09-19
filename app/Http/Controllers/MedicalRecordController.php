@@ -9,6 +9,11 @@ use Illuminate\Routing\Controller;
 
 class MedicalRecordController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['auth', 'role:nakes|super_admin']);
+    }
+
     /**
      * Show medical records for a family member
      */

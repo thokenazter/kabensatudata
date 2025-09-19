@@ -59,7 +59,7 @@ class MapController extends Controller
             $building = Building::with([
                 'village',
                 'families.members' => function ($query) {
-                    $query->select('id', 'family_id', 'name', 'relationship', 'gender', 'birth_date');
+                    $query->select('id', 'family_id', 'slug', 'name', 'relationship', 'gender', 'birth_date');
                 }
             ])->findOrFail($id);
 

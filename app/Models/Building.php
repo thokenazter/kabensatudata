@@ -21,9 +21,9 @@ class Building extends Model
         'village_id',
         'latitude',
         'longitude',
-        'address',
-        'notes',
-        'status'
+        // 'address',
+        // 'notes',
+        // 'status'
     ];
 
     /**

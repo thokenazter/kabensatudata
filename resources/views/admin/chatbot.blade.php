@@ -84,6 +84,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Application Knowledge Sync Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Pengetahuan Aplikasi</h2>
+            <p class="text-gray-600 mb-4">Bangun pengetahuan chatbot langsung dari data yang ditampilkan di halaman aplikasi.</p>
+
+            <div class="space-y-4">
+                <button id="sync-knowledge-button"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+                    Sinkronkan Pengetahuan Aplikasi
+                </button>
+            </div>
+
+            <div id="sync-knowledge-result" class="mt-4 hidden">
+                <div class="bg-gray-100 rounded-md p-4">
+                    <h3 class="font-medium text-gray-800 mb-2">Status Sinkronisasi</h3>
+                    <p id="sync-knowledge-status" class="text-sm"></p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-4">Tips: jalankan sinkronisasi setelah data dashboard, rekam medis, atau stok obat diperbarui agar jawaban chatbot tetap akurat.</p>
+        </div>
     </div>
     
     <!-- Test Chatbot Section -->
@@ -132,9 +154,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdfForm = document.getElementById('pdf-form');
     const pdfResult = document.getElementById('pdf-result');
     const pdfStatus = document.getElementById('pdf-status');
-    
+
     const testForm = document.getElementById('test-form');
     const testResult = document.getElementById('test-result');
+
+    const syncKnowledgeButton = document.getElementById('sync-knowledge-button');
+    const syncKnowledgeResult = document.getElementById('sync-knowledge-result');
+    const syncKnowledgeStatus = document.getElementById('sync-knowledge-status');
     
     // Website Crawler Form
     crawlForm.addEventListener('submit', function(e) {
@@ -231,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Test Chatbot Form
     testForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const message = document.getElementById('test_message').value;
         
         // Show loading state
@@ -259,6 +285,43 @@ document.addEventListener('DOMContentLoaded', function() {
             testResult.innerHTML = '<p class="text-red-600">An error occurred. Please try again.</p>';
         });
     });
+
+    if (syncKnowledgeButton) {
+        syncKnowledgeButton.addEventListener('click', function () {
+            syncKnowledgeButton.disabled = true;
+            syncKnowledgeButton.classList.add('opacity-60', 'cursor-not-allowed');
+            syncKnowledgeResult.classList.remove('hidden');
+            syncKnowledgeStatus.innerHTML = '<span class="text-blue-600">Sedang membangun ringkasan pengetahuan aplikasi...</span>';
+
+            fetch('{{ route('admin.chatbot.sync-app-knowledge') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    syncKnowledgeStatus.innerHTML = `<span class="text-green-600">${data.message}</span>`;
+                    if (data.artisan_output) {
+                        syncKnowledgeStatus.innerHTML += `<pre class="mt-2 text-xs whitespace-pre-wrap text-gray-600">${data.artisan_output}</pre>`;
+                    }
+                } else {
+                    syncKnowledgeStatus.innerHTML = `<span class="text-red-600">${data.message || 'Sinkronisasi gagal.'}</span>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                syncKnowledgeStatus.innerHTML = '<span class="text-red-600">Terjadi kesalahan saat menyinkronkan pengetahuan aplikasi.</span>';
+            })
+            .finally(() => {
+                syncKnowledgeButton.disabled = false;
+                syncKnowledgeButton.classList.remove('opacity-60', 'cursor-not-allowed');
+            });
+        });
+    }
 });
 </script>
 @endpush

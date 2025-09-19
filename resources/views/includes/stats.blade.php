@@ -1,3 +1,7 @@
+@php
+    $canViewSensitiveHealth = auth()->check() && auth()->user()->hasAnyRole(['nakes', 'super_admin']);
+@endphp
+
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Header with toggle button -->
     <div class="flex justify-between items-center mb-4">
@@ -101,22 +105,25 @@
                                     <div class="flex items-center mt-1">
                                         <!-- Angka dengan ukuran dan font weight yang lebih baik -->
                                         <div class="text-2xl font-bold text-gray-900">
-                                            @auth
+                                            @if($canViewSensitiveHealth)
                                                 {{ number_format($stats['tbc_count']) }}
                                             @else
-                                                <span class="blur-sm">{{ number_format($stats['tbc_count']) }}</span>
-                                            @endauth
+                                                <span class="text-sm font-medium text-gray-400 italic">Khusus tenaga kesehatan</span>
+                                            @endif
                                         </div>
                                         
                                         <!-- Call to action dengan desain yang lebih jelas -->
-                                        <span class="ml-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center cursor-pointer">
-                                            Lihat detail
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </span>
+                                        @if($canViewSensitiveHealth)
+                                            <span class="ml-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center cursor-pointer">
+                                                Lihat detail
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </span>
+                                        @endif
                                     </div>
 
+                                    @if($canViewSensitiveHealth)
                                     <!-- Tooltip yang lebih modern dan responsif -->
                                     <div class="hidden group-hover:block absolute z-50 mt-2 w-full sm:w-96 tright-0 sm:right-0 transform sm:origin-top-right">
                                         <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-h-96 overflow-y-auto">
@@ -190,6 +197,7 @@
                                             <!-- Tidak ada pagination -->
                                         </div>
                                     </div>
+                                    @endif
                                 </dd>
                             </dl>
                         </div>
@@ -222,22 +230,25 @@
                                     <div class="flex items-center mt-1">
                                         <!-- Angka dengan ukuran dan font weight yang lebih baik -->
                                         <div class="text-2xl font-bold text-gray-900">
-                                            @auth
+                                            @if($canViewSensitiveHealth)
                                                 {{ number_format($stats['hypertension_count']) }}
                                             @else
-                                                <span class="blur-sm">{{ number_format($stats['hypertension_count']) }}</span>
-                                            @endauth
+                                                <span class="text-sm font-medium text-gray-400 italic">Khusus tenaga kesehatan</span>
+                                            @endif
                                         </div>
                                         
                                         <!-- Call to action dengan desain yang lebih jelas -->
-                                        <span class="ml-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center cursor-pointer">
-                                            Lihat detail
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </span>
+                                        @if($canViewSensitiveHealth)
+                                            <span class="ml-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center cursor-pointer">
+                                                Lihat detail
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </span>
+                                        @endif
                                     </div>
 
+                                    @if($canViewSensitiveHealth)
                                     <!-- Tooltip yang lebih modern dan responsif dengan posisi yang diperbaiki -->
                                     <div class="hidden group-hover:block absolute z-50 mt-2 w-full sm:w-96 right-0 sm:right-0 transform sm:origin-top-right">
                                         <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-h-96 overflow-y-auto">
@@ -311,6 +322,7 @@
                                             <!-- Tidak ada pagination -->
                                         </div>
                                     </div>
+                                    @endif
                                 </dd>
                             </dl>
                         </div>

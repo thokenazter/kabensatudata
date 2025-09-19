@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChatbotController;
 use App\Services\IksReportService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -93,6 +94,11 @@ Route::get('/map', [MapController::class, 'index'])->name('map.index');
 Route::get('/map/buildings', [MapController::class, 'getBuildingsData']);
 Route::get('/map/buildings/{id}', [MapController::class, 'getBuildingDetails']);
 
+// Experimental Vue-based map (new UI)
+Route::get('/map-vue', function () {
+    return view('map.vue');
+})->name('map.vue');
+
 // Rute debugging untuk memeriksa fungsi API
 Route::get('/debug/buildings/{id}', function ($id) {
     $building = \App\Models\Building::with([
@@ -161,6 +167,9 @@ Route::middleware(['auth'])->group(function () {
             'jknByVillage'
         ));
     })->name('admin.chatbot');
+
+    Route::post('/admin/chatbot/sync-app-knowledge', [ChatbotController::class, 'syncAppKnowledge'])
+        ->name('admin.chatbot.sync-app-knowledge');
 });
 
 // Diagnostik API
@@ -205,6 +214,38 @@ Route::get('/system/diagnostics', function () {
 Route::get('/api/check-auth', function () {
     return response()->json(['isLoggedIn' => Auth::check()]);
 });
+
+// API: Cari anggota keluarga (pasien) untuk typeahead pada panel Admin
+Route::get('/api/family-members/search', function (\Illuminate\Http\Request $request) {
+    abort_unless(Auth::check(), 403);
+    $q = trim((string) $request->query('q', ''));
+    if ($q === '') {
+        return response()->json([]);
+    }
+
+    $members = \App\Models\FamilyMember::query()
+        ->select(['id', 'name', 'nik', 'rm_number', 'gender', 'birth_date'])
+        ->where(function ($w) use ($q) {
+            $w->where('name', 'like', "%{$q}%")
+              ->orWhere('nik', 'like', "%{$q}%")
+              ->orWhere('rm_number', 'like', "%{$q}%");
+        })
+        ->orderBy('name')
+        ->limit(15)
+        ->get()
+        ->map(function ($m) {
+            return [
+                'id' => $m->id,
+                'name' => $m->name,
+                'rm_number' => $m->rm_number,
+                'nik' => $m->nik,
+                'gender' => $m->gender,
+                'age' => method_exists($m, 'getAgeAttribute') ? $m->age : null,
+            ];
+        });
+
+    return response()->json($members);
+})->name('api.family-members.search');
 
 // Route::get('/family-members/{id}/{slug?}', 'FamilyMemberController@show')
 //     ->name('family-members.show');
@@ -299,7 +340,7 @@ Route::get('/family-members/{familyMember}/qrcode', [App\Http\Controllers\QRCode
 // routes/web.php
 
 // Medical Records Routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:nakes|super_admin'])->group(function () {
     Route::get(
         '/family-members/{familyMember}/medical-records',
         [App\Http\Controllers\MedicalRecordController::class, 'index']
@@ -365,3 +406,84 @@ Route::get('/api/search', [App\Http\Controllers\SearchController::class, 'search
 //         ->middleware('can:create_medical_record')
 //         ->name('medical-records.create');
 // });
+
+// =============================
+// Admin Panel (Custom) Routes
+// =============================
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\MedicineController as AdminMedicineController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\VillageController as AdminVillageController;
+use App\Http\Controllers\Admin\BuildingController as AdminBuildingController;
+use App\Http\Controllers\Admin\FamilyController as AdminFamilyController;
+use App\Http\Controllers\Admin\FamilyMemberController as AdminFamilyMemberController;
+use App\Http\Controllers\Admin\MedicalRecordController as AdminMedicalRecordController;
+
+// NOTE: gunakan prefix 'panel' untuk menghindari tabrakan dengan Filament '/admin' saat transisi
+Route::prefix('panel')
+    ->name('panel.')
+    ->middleware(['auth'])
+    ->group(function () {
+        // Admin dashboard
+        Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Medicines CRUD
+        Route::get('/medicines', [AdminMedicineController::class, 'index'])->name('medicines.index');
+        Route::get('/medicines/create', [AdminMedicineController::class, 'create'])->name('medicines.create');
+        Route::post('/medicines', [AdminMedicineController::class, 'store'])->name('medicines.store');
+        Route::get('/medicines/{medicine}/edit', [AdminMedicineController::class, 'edit'])->name('medicines.edit');
+        Route::put('/medicines/{medicine}', [AdminMedicineController::class, 'update'])->name('medicines.update');
+        Route::delete('/medicines/{medicine}', [AdminMedicineController::class, 'destroy'])->name('medicines.destroy');
+        Route::post('/medicines/{medicine}/adjust', [AdminMedicineController::class, 'adjustStock'])->name('medicines.adjust');
+
+        // Users CRUD
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        // Villages CRUD
+        Route::get('/villages', [AdminVillageController::class, 'index'])->name('villages.index');
+        Route::get('/villages/create', [AdminVillageController::class, 'create'])->name('villages.create');
+        Route::post('/villages', [AdminVillageController::class, 'store'])->name('villages.store');
+        Route::get('/villages/{village}/edit', [AdminVillageController::class, 'edit'])->name('villages.edit');
+        Route::put('/villages/{village}', [AdminVillageController::class, 'update'])->name('villages.update');
+        Route::delete('/villages/{village}', [AdminVillageController::class, 'destroy'])->name('villages.destroy');
+
+        // Buildings CRUD
+        Route::get('/buildings', [AdminBuildingController::class, 'index'])->name('buildings.index');
+        Route::get('/buildings/create', [AdminBuildingController::class, 'create'])->name('buildings.create');
+        Route::post('/buildings', [AdminBuildingController::class, 'store'])->name('buildings.store');
+        Route::get('/buildings/{building}/edit', [AdminBuildingController::class, 'edit'])->name('buildings.edit');
+        Route::put('/buildings/{building}', [AdminBuildingController::class, 'update'])->name('buildings.update');
+        Route::delete('/buildings/{building}', [AdminBuildingController::class, 'destroy'])->name('buildings.destroy');
+
+        // Families CRUD
+        Route::get('/families', [AdminFamilyController::class, 'index'])->name('families.index');
+        Route::get('/families/create', [AdminFamilyController::class, 'create'])->name('families.create');
+        Route::post('/families', [AdminFamilyController::class, 'store'])->name('families.store');
+        Route::get('/families/{family}/edit', [AdminFamilyController::class, 'edit'])->name('families.edit');
+        Route::put('/families/{family}', [AdminFamilyController::class, 'update'])->name('families.update');
+        Route::delete('/families/{family}', [AdminFamilyController::class, 'destroy'])->name('families.destroy');
+
+        // Family Members CRUD
+        Route::get('/family-members', [AdminFamilyMemberController::class, 'index'])->name('family-members.index');
+        Route::get('/family-members/create', [AdminFamilyMemberController::class, 'create'])->name('family-members.create');
+        Route::post('/family-members', [AdminFamilyMemberController::class, 'store'])->name('family-members.store');
+        Route::get('/family-members/{familyMember}/edit', [AdminFamilyMemberController::class, 'edit'])->name('family-members.edit');
+        Route::put('/family-members/{familyMember}', [AdminFamilyMemberController::class, 'update'])->name('family-members.update');
+        Route::delete('/family-members/{familyMember}', [AdminFamilyMemberController::class, 'destroy'])->name('family-members.destroy');
+
+        // Medical Records (Admin panel CRUD)
+        Route::get('/medical-records', [AdminMedicalRecordController::class, 'index'])->name('medical-records.index');
+        Route::get('/medical-records/create', [AdminMedicalRecordController::class, 'create'])->name('medical-records.create');
+        Route::post('/medical-records', [AdminMedicalRecordController::class, 'store'])->name('medical-records.store');
+        Route::get('/medical-records/{medicalRecord}/edit', [AdminMedicalRecordController::class, 'edit'])->name('medical-records.edit');
+        Route::put('/medical-records/{medicalRecord}', [AdminMedicalRecordController::class, 'update'])->name('medical-records.update');
+        Route::delete('/medical-records/{medicalRecord}', [AdminMedicalRecordController::class, 'destroy'])->name('medical-records.destroy');
+        Route::post('/medical-records/{medicalRecord}/take', [AdminMedicalRecordController::class, 'take'])->name('medical-records.take');
+        Route::post('/medical-records/{medicalRecord}/complete', [AdminMedicalRecordController::class, 'completeStage'])->name('medical-records.complete');
+        Route::get('/medical-records/export', [AdminMedicalRecordController::class, 'export'])->name('medical-records.export');
+    });

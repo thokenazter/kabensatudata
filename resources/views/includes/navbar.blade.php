@@ -12,10 +12,11 @@
             <!-- Logo -->
             <div class="flex items-center">
                 <div class="flex-shrink-0 flex items-center">
-                    <a href="/dashboard">
-                        <h1 class="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent transition-all duration-300 hover:from-indigo-600 hover:to-blue-600">
-                            Kaben|<span class="text-orange-500">SatuData</span>
-                        </h1>
+                    <a href="/dashboard" class="flex items-center gap-3">
+                        <img src="{{ asset('images/iconsatudata.PNG') }}" alt="Kaben Satu Data" class="hidden sm:block h-10 w-10 rounded-lg object-cover animate-spin" style="animation-duration: 8s;">
+                        <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent transition-all duration-300 hover:from-indigo-600 hover:to-blue-600">
+                            Kaben<span class="text-orange-500">SatuData</span>
+                        </span>
                     </a>
                 </div>
             </div>
@@ -34,15 +35,15 @@
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
                     Analysis
                 </a>
-                <a href="{{ route('map.index') }}" 
+                <a href="{{ route('map.vue') }}" 
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
                     Map
                 </a>
                 
-                <a href="{{ route('admin.chatbot') }}" 
+                {{-- <a href="{{ route('admin.chatbot') }}" 
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80 {{ request()->is('admin/chatbot') ? 'text-blue-600 bg-blue-50/80 font-semibold' : '' }}">
                     Chatbot Admin
-                </a>
+                </a> --}}
                 
                 @auth
                     <a href="/admin" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 shadow-md hover:shadow-lg">
@@ -403,7 +404,7 @@
         class="block px-4 py-2 rounded-lg text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-300">
         Analysis
     </a>
-        <a href="{{ route('map.index') }}" 
+        <a href="{{ route('map.vue') }}" 
             class="block px-4 py-2 rounded-lg text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 transition-all duration-300">
             Map
         </a>
