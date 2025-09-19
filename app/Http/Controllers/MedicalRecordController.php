@@ -88,17 +88,25 @@ class MedicalRecordController extends Controller
         $familyMember->load(['family.building.village']);
         $medicalRecord->load(['creator']);
 
+        $visitHistory = $familyMember->medicalRecords()
+            ->select(['id', 'visit_date', 'created_at', 'diagnosis_name'])
+            ->orderByDesc('visit_date')
+            ->orderByDesc('created_at')
+            ->get();
+
         // Check if this is an AJAX request for modal content
         if ($request->boolean('partial') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
             return view('medical-records._detail_content', [
                 'familyMember' => $familyMember,
-                'medicalRecord' => $medicalRecord
+                'medicalRecord' => $medicalRecord,
+                'visitHistory' => $visitHistory,
             ]);
         }
 
         return view('medical-records.show', [
             'familyMember' => $familyMember,
-            'medicalRecord' => $medicalRecord
+            'medicalRecord' => $medicalRecord,
+            'visitHistory' => $visitHistory,
         ]);
     }
 
