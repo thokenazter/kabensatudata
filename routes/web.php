@@ -11,6 +11,8 @@ use App\Http\Controllers\FamilyMemberController;
 use App\Http\Controllers\FamilyController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\SpmTargetController;
+use App\Http\Controllers\SpmController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -23,6 +25,12 @@ Route::get('/clear-cache', function () {
 
 // Redirect root to dashboard
 Route::redirect('/', '/dashboard');
+
+// Ensure the default Laravel auth middleware can redirect to a valid login route
+// When unauthenticated, Laravel calls route('login'). We alias it to Filament's login page.
+Route::get('/login', function () {
+    return redirect()->to('/admin/login');
+})->name('login');
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -170,6 +178,31 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/admin/chatbot/sync-app-knowledge', [ChatbotController::class, 'syncAppKnowledge'])
         ->name('admin.chatbot.sync-app-knowledge');
+});
+
+// SPM Kesehatan
+Route::middleware(['auth'])->group(function () {
+    Route::get('/spm/dashboard', [SpmController::class, 'dashboard'])->name('spm.dashboard');
+    Route::get('/spm/sub-indicators/{sub}/detail', [SpmController::class, 'subDetail'])->name('spm.sub.detail');
+    Route::post('/spm/achievements/override', [\App\Http\Controllers\SpmAchievementController::class, 'store'])->name('spm.achievements.override');
+    Route::resource('/spm/targets', SpmTargetController::class)->names([
+        'index' => 'targets.index',
+        'create' => 'targets.create',
+        'store' => 'targets.store',
+        'edit' => 'targets.edit',
+        'update' => 'targets.update',
+        'destroy' => 'targets.destroy',
+        'show' => 'targets.show',
+    ])->except(['show']);
+
+    // Bulk edit targets
+    Route::get('/spm/targets/bulk', [SpmTargetController::class, 'bulkEdit'])->name('targets.bulk');
+    Route::post('/spm/targets/bulk', [SpmTargetController::class, 'bulkUpdate'])->name('targets.bulk.update');
+
+    // Bulk edit monthly targets
+    Route::get('/spm/targets/monthly/bulk', [\App\Http\Controllers\SpmMonthlyTargetController::class, 'bulkEdit'])->name('targets.monthly.bulk');
+    Route::post('/spm/targets/monthly/bulk', [\App\Http\Controllers\SpmMonthlyTargetController::class, 'bulkUpdate'])->name('targets.monthly.bulk.update');
+    Route::post('/spm/targets/monthly/auto-distribute', [\App\Http\Controllers\SpmMonthlyTargetController::class, 'autoDistribute'])->name('targets.monthly.auto');
 });
 
 // Diagnostik API
@@ -418,11 +451,17 @@ use App\Http\Controllers\Admin\BuildingController as AdminBuildingController;
 use App\Http\Controllers\Admin\FamilyController as AdminFamilyController;
 use App\Http\Controllers\Admin\FamilyMemberController as AdminFamilyMemberController;
 use App\Http\Controllers\Admin\MedicalRecordController as AdminMedicalRecordController;
+use App\Http\Controllers\Pegawai\DashboardPegawaiController;
+use App\Http\Controllers\Pegawai\PegawaiController as EmployeesController;
+use App\Http\Controllers\Pegawai\PegawaiDokumenController as EmployeeDocumentsController;
+use App\Http\Controllers\Pegawai\SuratTugasController as EmployeeSuratTugasController;
+use App\Http\Controllers\Pegawai\SuratArchiveController as EmployeeSuratArchiveController;
+use App\Http\Controllers\Pegawai\SuratController as EmployeeSuratController;
 
 // NOTE: gunakan prefix 'panel' untuk menghindari tabrakan dengan Filament '/admin' saat transisi
 Route::prefix('panel')
     ->name('panel.')
-    ->middleware(['auth'])
+    ->middleware(['panel.auth'])
     ->group(function () {
         // Admin dashboard
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -486,4 +525,53 @@ Route::prefix('panel')
         Route::post('/medical-records/{medicalRecord}/take', [AdminMedicalRecordController::class, 'take'])->name('medical-records.take');
         Route::post('/medical-records/{medicalRecord}/complete', [AdminMedicalRecordController::class, 'completeStage'])->name('medical-records.complete');
         Route::get('/medical-records/export', [AdminMedicalRecordController::class, 'export'])->name('medical-records.export');
+
+        // Medical Records Analytics (Admin)
+        Route::get('/medical-records/analytics', [AdminMedicalRecordController::class, 'analytics'])->name('medical-records.analytics');
+        Route::get('/medical-records/analytics/data', [AdminMedicalRecordController::class, 'analyticsData'])->name('medical-records.analytics-data');
+    });
+
+// =============================
+// Dashboard Pegawai (Custom)
+// =============================
+Route::prefix('pegawai')
+    ->name('pegawai.')
+    ->middleware(['auth', 'role:super_admin|pegawai'])
+    ->group(function () {
+        // Dashboard utama pegawai
+        Route::get('/', [DashboardPegawaiController::class, 'index'])->name('dashboard');
+
+        // CRUD Pegawai (Non-Filament)
+        Route::get('/employees', [EmployeesController::class, 'index'])->name('employees.index');
+        Route::get('/employees/create', [EmployeesController::class, 'create'])->name('employees.create');
+        Route::post('/employees', [EmployeesController::class, 'store'])->name('employees.store');
+        Route::get('/employees/{employee}/edit', [EmployeesController::class, 'edit'])->name('employees.edit');
+        Route::put('/employees/{employee}', [EmployeesController::class, 'update'])->name('employees.update');
+        Route::delete('/employees/{employee}', [EmployeesController::class, 'destroy'])->name('employees.destroy');
+
+        // Dokumen Pegawai
+        Route::get('/employees/{employee}/documents', [EmployeeDocumentsController::class, 'index'])->name('employees.documents.index');
+        Route::get('/employees/{employee}/documents/create', [EmployeeDocumentsController::class, 'create'])->name('employees.documents.create');
+        Route::post('/employees/{employee}/documents', [EmployeeDocumentsController::class, 'store'])->name('employees.documents.store');
+        Route::get('/employees/{employee}/documents/{document}/edit', [EmployeeDocumentsController::class, 'edit'])->name('employees.documents.edit');
+        Route::put('/employees/{employee}/documents/{document}', [EmployeeDocumentsController::class, 'update'])->name('employees.documents.update');
+        Route::delete('/employees/{employee}/documents/{document}', [EmployeeDocumentsController::class, 'destroy'])->name('employees.documents.destroy');
+
+        // Surat Tugas (generator)
+        Route::get('/employees/{employee}/surat-tugas/create', [EmployeeSuratTugasController::class, 'create'])->name('employees.surat-tugas.create');
+        Route::post('/employees/{employee}/surat-tugas', [EmployeeSuratTugasController::class, 'store'])->name('employees.surat-tugas.store');
+
+        // E‑Arsip Surat
+        Route::get('/surat-arsip', [EmployeeSuratArchiveController::class, 'index'])->name('surat-arsip.index');
+        Route::get('/surat-arsip/upload', [EmployeeSuratArchiveController::class, 'create'])->name('surat-arsip.create');
+        Route::post('/surat-arsip/upload', [EmployeeSuratArchiveController::class, 'store'])->name('surat-arsip.store');
+        Route::get('/surat-arsip/{archive}/download', [EmployeeSuratArchiveController::class, 'download'])->name('surat-arsip.download');
+        Route::get('/surat-arsip/{archive}/edit', [EmployeeSuratArchiveController::class, 'edit'])->name('surat-arsip.edit');
+        Route::put('/surat-arsip/{archive}', [EmployeeSuratArchiveController::class, 'update'])->name('surat-arsip.update');
+        Route::delete('/surat-arsip/{archive}', [EmployeeSuratArchiveController::class, 'destroy'])->name('surat-arsip.destroy');
+        // PDF routes removed per request
+
+        // Pembuatan Surat (umum)
+        Route::get('/surat/tugas/create', [EmployeeSuratController::class, 'createTugas'])->name('surat.tugas.create');
+        Route::post('/surat/tugas', [EmployeeSuratController::class, 'storeTugas'])->name('surat.tugas.store');
     });

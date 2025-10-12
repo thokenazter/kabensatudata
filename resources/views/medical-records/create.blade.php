@@ -172,6 +172,18 @@
                     <!-- Diagnosis Section -->
                     <div class="border-t border-gray-200 pt-4">
                         <h3 class="text-md font-medium text-gray-900">Diagnosis & Terapi</h3>
+
+                        <div class="mt-4">
+                            <label for="spm_sub_indicator_ids" class="block text-sm font-medium text-gray-700">Sub‑Indikator SPM (opsional, bisa pilih lebih dari satu)</label>
+                            <select name="spm_sub_indicator_ids[]" id="spm_sub_indicator_ids" multiple size="8" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @isset($subIndicators)
+                                    @foreach($subIndicators as $si)
+                                        <option value="{{ $si->id }}">{{ $si->code }} — {{ $si->name }} ({{ $si->indicator?->name }})</option>
+                                    @endforeach
+                                @endisset
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Tahan Ctrl (Windows) / Cmd (Mac) untuk pilih multiple.</p>
+                        </div>
                         
                         <div class="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                             <div>

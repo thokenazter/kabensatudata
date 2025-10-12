@@ -39,6 +39,12 @@
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
                     Map
                 </a>
+                @auth
+                <a href="/panel" 
+                    class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80">
+                    Panel
+                </a>
+                @endauth
                 
                 {{-- <a href="{{ route('admin.chatbot') }}" 
                     class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-blue-50/80 {{ request()->is('admin/chatbot') ? 'text-blue-600 bg-blue-50/80 font-semibold' : '' }}">

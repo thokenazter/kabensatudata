@@ -25,61 +25,101 @@
                     <span class="icon">🏠</span>
                     <span x-show="open" x-transition.opacity>Dashboard</span>
                 </a>
-                @can('view_any_medicine')
-                    <a href="{{ route('panel.medicines.index') }}" class="nav-link {{ request()->routeIs('panel.medicines.*') ? 'active' : '' }}">
-                        <span class="icon">💊</span>
-                        <span x-show="open" x-transition.opacity>Medicines</span>
-                    </a>
-                @endcan
-                @can('view_any_medical_record')
-                    <a href="{{ route('panel.medical-records.index') }}" class="nav-link {{ request()->routeIs('panel.medical-records.*') ? 'active' : '' }}">
-                        <span class="icon">📋</span>
-                        <span x-show="open" x-transition.opacity>Medical Records</span>
-                    </a>
-                @else
-                    <a href="{{ route('panel.medical-records.index') }}" class="nav-link {{ request()->routeIs('panel.medical-records.*') ? 'active' : '' }}">
-                        <span class="icon">📋</span>
-                        <span x-show="open" x-transition.opacity>Medical Records</span>
-                    </a>
-                @endcan
-                @can('view_any_user')
-                    <a href="{{ route('panel.users.index') }}" class="nav-link {{ request()->routeIs('panel.users.*') ? 'active' : '' }}">
-                        <span class="icon">🧑‍💼</span>
-                        <span x-show="open" x-transition.opacity>Users</span>
-                    </a>
-                @endcan
-                @can('view_any_village')
-                    <a href="{{ route('panel.villages.index') }}" class="nav-link {{ request()->routeIs('panel.villages.*') ? 'active' : '' }}">
-                        <span class="icon">🏘️</span>
-                        <span x-show="open" x-transition.opacity>Villages</span>
-                    </a>
-                @endcan
-                @can('view_any_building')
-                    <a href="{{ route('panel.buildings.index') }}" class="nav-link {{ request()->routeIs('panel.buildings.*') ? 'active' : '' }}">
-                        <span class="icon">🏚️</span>
-                        <span x-show="open" x-transition.opacity>Buildings</span>
-                    </a>
-                @endcan
-                @can('view_any_family')
-                    <a href="{{ route('panel.families.index') }}" class="nav-link {{ request()->routeIs('panel.families.*') ? 'active' : '' }}">
-                        <span class="icon">👪</span>
-                        <span x-show="open" x-transition.opacity>Families</span>
-                    </a>
-                @endcan
-                @can('view_any_family::member')
-                    <a href="{{ route('panel.family-members.index') }}" class="nav-link {{ request()->routeIs('panel.family-members.*') ? 'active' : '' }}">
-                        <span class="icon">🧍</span>
-                        <span x-show="open" x-transition.opacity>Members</span>
-                    </a>
-                @endcan
+                <!-- Master Data group -->
+                <div x-data="{ openMaster: {{ (
+                        request()->routeIs('panel.medicines.*') ||
+                        request()->routeIs('panel.medical-records.*') ||
+                        request()->routeIs('panel.users.*') ||
+                        request()->routeIs('panel.villages.*') ||
+                        request()->routeIs('panel.buildings.*') ||
+                        request()->routeIs('panel.families.*') ||
+                        request()->routeIs('panel.family-members.*') ||
+                        request()->is('admin/chatbot*')
+                    ) ? 'true' : 'false' }} }" class="space-y-0.5">
+                    <button type="button" @click="openMaster = !openMaster" class="nav-link w-full {{ (
+                        request()->routeIs('panel.medicines.*') ||
+                        request()->routeIs('panel.medical-records.*') ||
+                        request()->routeIs('panel.users.*') ||
+                        request()->routeIs('panel.villages.*') ||
+                        request()->routeIs('panel.buildings.*') ||
+                        request()->routeIs('panel.families.*') ||
+                        request()->routeIs('panel.family-members.*') ||
+                        request()->is('admin/chatbot*')
+                    ) ? 'active' : '' }}">
+                        <span class="icon">🗂️</span>
+                        <span x-show="open" x-transition.opacity class="flex-1 text-left">Master Data</span>
+                        <svg x-show="open" :class="openMaster ? 'rotate-180' : ''" class="h-4 w-4 text-slate-300 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.585l3.71-3.354a.75.75 0 111.02 1.1l-4.2 3.8a.75.75 0 01-1.02 0l-4.2-3.8a.75.75 0 01-.02-1.06z" clip-rule="evenodd"/></svg>
+                    </button>
+
+                    <div x-show="openMaster" x-transition.opacity class="pl-6 space-y-0.5">
+                        @can('view_any_medicine')
+                            <a href="{{ route('panel.medicines.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.medicines.*') ? 'active' : '' }}">
+                                <span class="icon">💊</span>
+                                <span x-show="open" x-transition.opacity>Obat</span>
+                            </a>
+                        @endcan
+
+                        <a href="{{ route('panel.medical-records.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.medical-records.*') ? 'active' : '' }}">
+                            <span class="icon">📋</span>
+                            <span x-show="open" x-transition.opacity>Rekam Medis</span>
+                        </a>
+
+                        @can('view_any_user')
+                            <a href="{{ route('panel.users.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.users.*') ? 'active' : '' }}">
+                                <span class="icon">🧑‍💼</span>
+                                <span x-show="open" x-transition.opacity>Pengguna</span>
+                            </a>
+                        @endcan
+
+                        @can('view_any_village')
+                            <a href="{{ route('panel.villages.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.villages.*') ? 'active' : '' }}">
+                                <span class="icon">🏘️</span>
+                                <span x-show="open" x-transition.opacity>Desa</span>
+                            </a>
+                        @endcan
+
+                        @can('view_any_building')
+                            <a href="{{ route('panel.buildings.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.buildings.*') ? 'active' : '' }}">
+                                <span class="icon">🏚️</span>
+                                <span x-show="open" x-transition.opacity>Bangunan</span>
+                            </a>
+                        @endcan
+
+                        @can('view_any_family')
+                            <a href="{{ route('panel.families.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.families.*') ? 'active' : '' }}">
+                                <span class="icon">👪</span>
+                                <span x-show="open" x-transition.opacity>Keluarga</span>
+                            </a>
+                        @endcan
+
+                        @can('view_any_family::member')
+                            <a href="{{ route('panel.family-members.index') }}" class="nav-link ml-6 {{ request()->routeIs('panel.family-members.*') ? 'active' : '' }}">
+                                <span class="icon">🧍</span>
+                                <span x-show="open" x-transition.opacity>Anggota</span>
+                            </a>
+                        @endcan
+
+                        <a href="{{ url('/admin/chatbot') }}" class="nav-link ml-6 {{ request()->is('admin/chatbot*') ? 'active' : '' }}">
+                            <span class="icon">🤖</span>
+                            <span x-show="open" x-transition.opacity>Chatbot</span>
+                        </a>
+                    </div>
+                </div>
+                <a href="{{ route('spm.dashboard') }}" class="nav-link {{ request()->routeIs('spm.dashboard') ? 'active' : '' }}">
+                    <span class="icon">📊</span>
+                    <span x-show="open" x-transition.opacity>SPM Dashboard</span>
+                </a>
+                <a href="{{ route('targets.bulk', ['year' => now()->year]) }}" class="nav-link {{ request()->routeIs('targets.bulk') ? 'active' : '' }}">
+                    <span class="icon">🎯</span>
+                    <span x-show="open" x-transition.opacity>Kelola Target (Bulk)</span>
+                </a>
+                
+                
                 <a href="{{ route('dashboard') }}" class="nav-link">
                     <span class="icon">📊</span>
                     <span x-show="open" x-transition.opacity>Public Dashboard</span>
                 </a>
-                <a href="{{ url('/admin/chatbot') }}" class="nav-link">
-                    <span class="icon">🤖</span>
-                    <span x-show="open" x-transition.opacity>Chatbot</span>
-                </a>
+                
             </nav>
             <div class="p-4 border-t border-white/10 mt-4">
                 <form action="{{ route('filament.admin.auth.logout') }}" method="POST">
@@ -118,24 +158,56 @@
                     <span id="desktopTopIndicator" class="absolute bottom-0 h-0.5 bg-fuchsia-400 rounded transition-all duration-300" style="left:0;width:0"></span>
 
                     <a href="{{ route('panel.dashboard') }}" class="dtab-item {{ request()->routeIs('panel.dashboard') ? 'active' : '' }}"><span class="icon">🏠</span><span class="label">Dashboard</span></a>
-                    @can('view_any_medicine')
-                        <a href="{{ route('panel.medicines.index') }}" class="dtab-item {{ request()->routeIs('panel.medicines.*') ? 'active' : '' }}"><span class="icon">💊</span><span class="label">Obat</span></a>
-                    @endcan
-                    @can('view_any_user')
-                        <a href="{{ route('panel.users.index') }}" class="dtab-item {{ request()->routeIs('panel.users.*') ? 'active' : '' }}"><span class="icon">🧑‍💼</span><span class="label">User</span></a>
-                    @endcan
-                    @can('view_any_village')
-                        <a href="{{ route('panel.villages.index') }}" class="dtab-item {{ request()->routeIs('panel.villages.*') ? 'active' : '' }}"><span class="icon">🏘️</span><span class="label">Desa</span></a>
-                    @endcan
-                    @can('view_any_building')
-                        <a href="{{ route('panel.buildings.index') }}" class="dtab-item {{ request()->routeIs('panel.buildings.*') ? 'active' : '' }}"><span class="icon">🏚️</span><span class="label">Bangunan</span></a>
-                    @endcan
-                    @can('view_any_family')
-                        <a href="{{ route('panel.families.index') }}" class="dtab-item {{ request()->routeIs('panel.families.*') ? 'active' : '' }}"><span class="icon">👪</span><span class="label">Keluarga</span></a>
-                    @endcan
-                    @can('view_any_family::member')
-                        <a href="{{ route('panel.family-members.index') }}" class="dtab-item {{ request()->routeIs('panel.family-members.*') ? 'active' : '' }}"><span class="icon">🧍</span><span class="label">Anggota</span></a>
-                    @endcan
+
+                    <div x-data="{ openMT: {{ (
+                        request()->routeIs('panel.medicines.*') ||
+                        request()->routeIs('panel.medical-records.*') ||
+                        request()->routeIs('panel.users.*') ||
+                        request()->routeIs('panel.villages.*') ||
+                        request()->routeIs('panel.buildings.*') ||
+                        request()->routeIs('panel.families.*') ||
+                        request()->routeIs('panel.family-members.*') ||
+                        request()->is('admin/chatbot*')
+                    ) ? 'true' : 'false' }} }" class="relative">
+                        <button type="button" @click="openMT = !openMT" class="dtab-item {{ (
+                            request()->routeIs('panel.medicines.*') ||
+                            request()->routeIs('panel.medical-records.*') ||
+                            request()->routeIs('panel.users.*') ||
+                            request()->routeIs('panel.villages.*') ||
+                            request()->routeIs('panel.buildings.*') ||
+                            request()->routeIs('panel.families.*') ||
+                            request()->routeIs('panel.family-members.*') ||
+                            request()->is('admin/chatbot*')
+                        ) ? 'active' : '' }}">
+                            <span class="icon">🗂️</span>
+                            <span class="label">Master Data</span>
+                            <svg class="h-3 w-3 ml-1 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.585l3.71-3.354a.75.75 0 111.02 1.1l-4.2 3.8a.75.75 0 01-1.02 0l-4.2-3.8a.75.75 0 01-.02-1.06z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <div x-show="openMT" x-transition @click.outside="openMT=false" class="absolute top-full left-0 mt-1 bg-white/10 border border-white/10 backdrop-blur rounded-lg shadow-xl p-1 z-10 min-w-[14rem]">
+                            <div class="py-1">
+                                @can('view_any_medicine')
+                                <a href="{{ route('panel.medicines.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.medicines.*') ? 'bg-white/10' : '' }}"><span>💊</span><span>Obat</span></a>
+                                @endcan
+                                <a href="{{ route('panel.medical-records.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.medical-records.*') ? 'bg-white/10' : '' }}"><span>📋</span><span>Rekam Medis</span></a>
+                                @can('view_any_user')
+                                <a href="{{ route('panel.users.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.users.*') ? 'bg-white/10' : '' }}"><span>🧑‍💼</span><span>Pengguna</span></a>
+                                @endcan
+                                @can('view_any_village')
+                                <a href="{{ route('panel.villages.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.villages.*') ? 'bg-white/10' : '' }}"><span>🏘️</span><span>Desa</span></a>
+                                @endcan
+                                @can('view_any_building')
+                                <a href="{{ route('panel.buildings.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.buildings.*') ? 'bg-white/10' : '' }}"><span>🏚️</span><span>Bangunan</span></a>
+                                @endcan
+                                @can('view_any_family')
+                                <a href="{{ route('panel.families.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.families.*') ? 'bg-white/10' : '' }}"><span>👪</span><span>Keluarga</span></a>
+                                @endcan
+                                @can('view_any_family::member')
+                                <a href="{{ route('panel.family-members.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.family-members.*') ? 'bg-white/10' : '' }}"><span>🧍</span><span>Anggota</span></a>
+                                @endcan
+                                <a href="{{ url('/admin/chatbot') }}" class="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-white/15 text-slate-200 {{ request()->is('admin/chatbot*') ? 'bg-white/10' : '' }}"><span>🤖</span><span>Chatbot</span></a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -208,7 +280,32 @@
 
     <!-- Mobile Bottom Navigation -->
     <nav class="md:hidden fixed bottom-0 inset-x-0 z-40">
-        <div class="relative bg-white/10 backdrop-blur-xl border-t border-white/10">
+        <div class="relative bg-white/10 backdrop-blur-xl border-t border-white/10" x-data="{ openMasterBottom: false }">
+            <!-- Master Data dropdown for bottom nav -->
+            <div x-show="openMasterBottom" x-transition @click.outside="openMasterBottom=false" class="absolute bottom-[3.5rem] left-2 right-2 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl p-2 z-50">
+                <div class="grid grid-cols-2 gap-1">
+                    @can('view_any_medicine')
+                    <a href="{{ route('panel.medicines.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.medicines.*') ? 'bg-white/10' : '' }}"><span>💊</span><span>Obat</span></a>
+                    @endcan
+                    <a href="{{ route('panel.medical-records.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.medical-records.*') ? 'bg-white/10' : '' }}"><span>📋</span><span>Rekam Medis</span></a>
+                    @can('view_any_user')
+                    <a href="{{ route('panel.users.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.users.*') ? 'bg-white/10' : '' }}"><span>🧑‍💼</span><span>Pengguna</span></a>
+                    @endcan
+                    @can('view_any_village')
+                    <a href="{{ route('panel.villages.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.villages.*') ? 'bg-white/10' : '' }}"><span>🏘️</span><span>Desa</span></a>
+                    @endcan
+                    @can('view_any_building')
+                    <a href="{{ route('panel.buildings.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.buildings.*') ? 'bg-white/10' : '' }}"><span>🏚️</span><span>Bangunan</span></a>
+                    @endcan
+                    @can('view_any_family')
+                    <a href="{{ route('panel.families.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.families.*') ? 'bg-white/10' : '' }}"><span>👪</span><span>Keluarga</span></a>
+                    @endcan
+                    @can('view_any_family::member')
+                    <a href="{{ route('panel.family-members.index') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->routeIs('panel.family-members.*') ? 'bg-white/10' : '' }}"><span>🧍</span><span>Anggota</span></a>
+                    @endcan
+                    <a href="{{ url('/admin/chatbot') }}" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/15 text-slate-200 {{ request()->is('admin/chatbot*') ? 'bg-white/10' : '' }}"><span>🤖</span><span>Chatbot</span></a>
+                </div>
+            </div>
             <div id="bottomNav" class="flex gap-2 overflow-x-auto no-scrollbar px-2 py-2 items-end">
                 <!-- active halo -->
                 <span id="bottomHalo" class="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-cyan-400/20 blur-xl opacity-0 transition-opacity"></span>
@@ -218,51 +315,30 @@
                     <span class="label">Home</span>
                 </a>
 
-                @can('view_any_medicine')
-                <a href="{{ route('panel.medicines.index') }}" class="nav-btn {{ request()->routeIs('panel.medicines.*') ? 'active' : '' }}">
-                    <span class="icon">💊</span>
-                    <span class="label">Obat</span>
-                </a>
-                @endcan
-                <a href="{{ route('panel.medical-records.index') }}" class="nav-btn {{ request()->routeIs('panel.medical-records.*') ? 'active' : '' }}">
-                    <span class="icon">📋</span>
-                    <span class="label">Rekam</span>
+                <a href="#" @click.prevent="openMasterBottom = !openMasterBottom" class="nav-btn {{ (
+                    request()->routeIs('panel.medicines.*') ||
+                    request()->routeIs('panel.medical-records.*') ||
+                    request()->routeIs('panel.users.*') ||
+                    request()->routeIs('panel.villages.*') ||
+                    request()->routeIs('panel.buildings.*') ||
+                    request()->routeIs('panel.families.*') ||
+                    request()->routeIs('panel.family-members.*') ||
+                    request()->is('admin/chatbot*')
+                ) ? 'active' : '' }}">
+                    <span class="icon">🗂️</span>
+                    <span class="label">Master Data</span>
                 </a>
 
-                @can('view_any_user')
-                <a href="{{ route('panel.users.index') }}" class="nav-btn {{ request()->routeIs('panel.users.*') ? 'active' : '' }}">
-                    <span class="icon">🧑‍💼</span>
-                    <span class="label">User</span>
+                <a href="{{ route('spm.dashboard') }}" class="nav-btn {{ request()->routeIs('spm.dashboard') ? 'active' : '' }}">
+                    <span class="icon">📊</span>
+                    <span class="label">SPM</span>
                 </a>
-                @endcan
+                <a href="{{ route('targets.bulk', ['year' => now()->year]) }}" class="nav-btn {{ request()->routeIs('targets.bulk') ? 'active' : '' }}">
+                    <span class="icon">🎯</span>
+                    <span class="label">Bulk</span>
+                </a>
 
-                @can('view_any_village')
-                <a href="{{ route('panel.villages.index') }}" class="nav-btn {{ request()->routeIs('panel.villages.*') ? 'active' : '' }}">
-                    <span class="icon">🏘️</span>
-                    <span class="label">Desa</span>
-                </a>
-                @endcan
-
-                @can('view_any_building')
-                <a href="{{ route('panel.buildings.index') }}" class="nav-btn {{ request()->routeIs('panel.buildings.*') ? 'active' : '' }}">
-                    <span class="icon">🏚️</span>
-                    <span class="label">Bangunan</span>
-                </a>
-                @endcan
-
-                @can('view_any_family')
-                <a href="{{ route('panel.families.index') }}" class="nav-btn {{ request()->routeIs('panel.families.*') ? 'active' : '' }}">
-                    <span class="icon">👪</span>
-                    <span class="label">Keluarga</span>
-                </a>
-                @endcan
-
-                @can('view_any_family::member')
-                <a href="{{ route('panel.family-members.index') }}" class="nav-btn {{ request()->routeIs('panel.family-members.*') ? 'active' : '' }}">
-                    <span class="icon">🧍</span>
-                    <span class="label">Anggota</span>
-                </a>
-                @endcan
+                
             </div>
         </div>
         <style>

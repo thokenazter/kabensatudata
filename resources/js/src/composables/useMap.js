@@ -9,7 +9,7 @@ import { useOfflineMap } from './useOfflineMap'
 export function useMap() {
   const store = useMapStore()
   const { buildingPassesFilters } = useFilters()
-  const { saveBuildings } = useOfflineMap()
+  const { saveBuildings, getOfflineBuildingsByBbox } = useOfflineMap()
 
   const canViewSensitiveHealth = typeof window !== 'undefined' && Boolean(window.__canViewSensitiveHealth)
 
@@ -269,7 +269,21 @@ export function useMap() {
       store.setLastFetchedBbox(bbox)
       try { window.dispatchEvent(new CustomEvent('map:buildings-updated')) } catch (_) {}
     } catch (e) {
-      store.setError(e?.message || 'Gagal memuat data peta')
+      // Try offline fallback from IndexedDB
+      try {
+        const bbox = currentBbox(map)
+        const offlineBuildings = await getOfflineBuildingsByBbox(bbox)
+        if (Array.isArray(offlineBuildings) && offlineBuildings.length) {
+          store.setBuildings(offlineBuildings)
+          await addOrUpdateMarkers(offlineBuildings)
+          store.setError('Mode offline: menampilkan data tersimpan')
+          try { window.dispatchEvent(new CustomEvent('map:buildings-updated')) } catch (_) {}
+        } else {
+          store.setError(e?.message || 'Gagal memuat data peta')
+        }
+      } catch (_) {
+        store.setError(e?.message || 'Gagal memuat data peta')
+      }
     } finally {
       store.setLoading(false)
     }
@@ -284,12 +298,15 @@ export function useMap() {
       preferCanvas: true,
     })
     mapRef.value = map
+    // expose in store for sibling components (e.g., OfflineControls)
+    try { store.setMap(map) } catch (_) {}
 
     // OSM tiles
     tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: store.maxZoom,
       maxNativeZoom: 19,
       minZoom: store.minZoom,
+      subdomains: ['a'], // match prefetch subdomain for better offline coverage
       attribution: '&copy; OpenStreetMap contributors',
       crossOrigin: true,
     })

@@ -77,6 +77,12 @@
             <div class="mt-2 text-slate-400">Antarmuka chatbot admin</div>
         </a>
     </div>
+    <div class="grid grid-cols-1 md:grid-cols-1 gap-5">
+        <a href="{{ url('/pegawai') }}" class="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur group">
+            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-gradient-to-r from-emerald-500/10 to-cyan-500/10"></div>
+            <div class="mt-1 text-center text-xl font-semibold text-slate-100">Dashboard Pegawai</div>
+        </a>
+    </div>
 
     <style>
         @keyframes gradient-x { 0%,100%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } }

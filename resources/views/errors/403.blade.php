@@ -1,14 +1,17 @@
-@extends('errors::minimal')
+@extends('errors.minimal')
 
 @section('title', 'Akses Ditolak')
 @section('code', '403')
 @section('message')
 <div class="space-y-4 text-left">
-    <h2 class="text-xl font-semibold text-slate-100">Oops, akses anda dibatasi.</h2>
-    <p class="text-slate-300">Anda tidak memiliki hak untuk melihat Rekam Medis Pasien. Hanya tenaga kesehatan (nakes) atau super admin yang dapat membuka halaman ini.</p>
-    <p class="text-slate-400 text-sm">Jika Anda adalah nakes atau petugas puskesmas, silakan hubungi administrator untuk mengaktifkan akses.</p>
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Anda tidak memiliki izin</h2>
+    <p class="text-gray-600 dark:text-gray-400">Anda tidak memiliki hak untuk mengakses halaman ini.</p>
+    <ul class="list-disc pl-5 text-gray-600 dark:text-gray-400">
+        <li>Jika Anda seharusnya memiliki akses, hubungi administrator.</li>
+        <li>Kembali ke halaman utama untuk melanjutkan.</li>
+    </ul>
     <div class="pt-2">
-        <a href="{{ url()->previous() ?? url('/') }}" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition">Kembali</a>
+        <a href="{{ url('/dashboard') }}" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">Kembali ke Dashboard</a>
     </div>
 </div>
 @endsection

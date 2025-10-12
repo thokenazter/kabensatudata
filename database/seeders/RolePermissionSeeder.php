@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
             'petugas',
             'supervisor',
             'kepala_puskesmas',
+            'pegawai',
         ];
 
         foreach ($roles as $role) {
@@ -82,6 +83,12 @@ class RolePermissionSeeder extends Seeder
         $role->givePermissionTo([
             'view_dashboard',
             'view_reports',
+        ]);
+
+        // Pegawai basic permissions
+        $role = Role::findByName('pegawai');
+        $role->givePermissionTo([
+            'view_dashboard',
         ]);
 
         // Buat user admin jika belum ada

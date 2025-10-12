@@ -170,6 +170,7 @@ return [
          */
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
+        App\Providers\EventServiceProvider::class,
         App\Providers\FilamentServiceProvider::class,
         App\Providers\FilamentAuthServiceProvider::class,
         App\Providers\BladeComponentServiceProvider::class,

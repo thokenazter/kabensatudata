@@ -1,5 +1,17 @@
-@extends('errors::minimal')
+@extends('errors.minimal')
 
-@section('title', __('Unauthorized'))
+@section('title', 'Tidak Diizinkan')
 @section('code', '401')
-@section('message', __('Unauthorized'))
+@section('message')
+<div class="space-y-4 text-left">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Anda belum terautentikasi</h2>
+    <p class="text-gray-600 dark:text-gray-400">Sesi Anda mungkin telah berakhir, atau Anda belum masuk.</p>
+    <ul class="list-disc pl-5 text-gray-600 dark:text-gray-400">
+        <li>Muat ulang halaman dan coba lagi.</li>
+        <li>Jika masalah berlanjut, hubungi administrator.</li>
+    </ul>
+    <div class="pt-2">
+        <a href="{{ url('/dashboard') }}" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition">Kembali ke Dashboard</a>
+    </div>
+</div>
+@endsection

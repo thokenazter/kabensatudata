@@ -135,6 +135,16 @@
                     <div class="mt-2 h-64">
                         <canvas id="healthChart"></canvas>
                     </div>
+                    <div class="mt-3 text-xs text-gray-600">
+                        <div class="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1 mr-2">
+                            <span class="font-semibold">Gangguan Jiwa (Keluarga):</span>
+                            <span>{{ number_format($stats['mental_illness_count'] ?? 0) }}</span>
+                        </div>
+                        <div class="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1">
+                            <span class="font-semibold">ODGJ (Individu):</span>
+                            <span>{{ number_format($stats['mental_disorder_individual_count'] ?? 0) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

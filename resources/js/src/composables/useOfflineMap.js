@@ -1,5 +1,6 @@
 import { useOfflineStore } from '../stores/offlineStore'
 import { OfflineManager } from '../services/OfflineManager'
+import { MapService } from '../services/MapService'
 
 export function useOfflineMap() {
   const offline = useOfflineStore()
@@ -13,10 +14,18 @@ export function useOfflineMap() {
     const east = bounds.getEast()
     const west = bounds.getWest()
     const bbox = [west, south, east, north]
-    offline.addCachedArea({ bbox })
+    await offline.addCachedArea({ bbox })
     // Precache tiles for a couple of zoom levels around current
     const z = map.getZoom()
     await precacheTiles({ west, south, east, north }, [Math.max(10, z - 1), Math.min(18, z + 1)])
+
+    // Prefetch and store buildings data for this bbox
+    try {
+      const buildings = await MapService.getBuildingsByBbox(bbox)
+      if (Array.isArray(buildings) && buildings.length) {
+        await saveBuildings(buildings)
+      }
+    } catch (_) {}
   }
 
   async function saveBuildings(buildings) {
@@ -35,8 +44,9 @@ export function useOfflineMap() {
       const { xMin, xMax, yMin, yMax } = tileRangeForBounds(bounds, z)
       for (let x = xMin; x <= xMax; x++) {
         for (let y = yMin; y <= yMax; y++) {
-          const url = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`
-          tasks.push(fetch(url).catch(() => null))
+          // Use only subdomain 'a' to match tile layer subdomains (set to ['a'])
+          const urlA = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`
+          tasks.push(fetch(urlA).catch(() => null))
         }
       }
     }

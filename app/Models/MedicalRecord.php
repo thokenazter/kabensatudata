@@ -23,6 +23,7 @@ class MedicalRecord extends Model
         'diagnosis_code',
         'diagnosis_name',
         'therapy',
+        'spm_service_type',
         'medication',
         'procedure',
         'created_by',
@@ -109,6 +110,15 @@ class MedicalRecord extends Model
     public function medicineUsages(): HasMany
     {
         return $this->hasMany(MedicineUsage::class);
+    }
+
+    /**
+     * Many-to-many with SPM sub-indicators.
+     */
+    public function spmSubIndicators()
+    {
+        return $this->belongsToMany(\App\Models\SpmSubIndicator::class, 'medical_record_spm_sub_indicators')
+            ->withTimestamps();
     }
 
     /**

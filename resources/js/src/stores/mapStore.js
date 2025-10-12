@@ -12,6 +12,7 @@ export const useMapStore = defineStore('map', {
     buildings: [], // normalized buildings
     markers: new Map(), // key: buildingId, value: Leaflet marker
     cluster: null, // Leaflet.markerClusterGroup
+    map: null, // Leaflet map instance
 
     // UI / filter state
     filters: {
@@ -40,6 +41,7 @@ export const useMapStore = defineStore('map', {
   }),
   actions: {
     setCluster(c) { this.cluster = c },
+    setMap(m) { this.map = m },
     setCenter(c) { this.center = c },
     setZoom(z) { this.zoom = z },
     setLoading(v) { this.loading = v },

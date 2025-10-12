@@ -81,6 +81,15 @@ class DashboardController extends Controller
                 })
                 ->count();
 
+            // Hitung ODGJ (individu) untuk konsistensi dengan SPM
+            $mental_disorder_individual_count = FamilyMember::where('has_mental_disorder', true)
+                ->when($villageId, function ($query) use ($villageId) {
+                    $query->whereHas('family.building', function ($q) use ($villageId) {
+                        $q->where('village_id', $villageId);
+                    });
+                })
+                ->count();
+
             $restrained_count = Family::where('has_restrained_member', true)
                 ->when($villageId, function ($query) use ($villageId) {
                     $query->whereHas('building', function ($q) use ($villageId) {
@@ -97,7 +106,8 @@ class DashboardController extends Controller
                 'tbc_count' => $tbc_count,
                 'hypertension_count' => $hypertension_count,
                 'chronic_cough_count' => $chronic_cough_count,
-                'mental_illness_count' => $mental_illness_count,
+                'mental_illness_count' => $mental_illness_count, // level keluarga
+                'mental_disorder_individual_count' => $mental_disorder_individual_count, // level individu
                 'restrained_count' => $restrained_count,
             ];
         });
@@ -198,9 +208,16 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        // Data maternal health
+        // Data maternal health (selaraskan dengan definisi SPM PUS non‑bumil 15–49)
+        $ageUpper = now()->copy()->subYears(15);   // lebih muda batas bawah usia
+        $ageLower = now()->copy()->subYears(49);   // lebih tua batas atas usia
+
         $maternalStats = [
+            // KB aktif = PUS non‑bumil (usia 15–49), menggunakan KB
             'kb_count' => FamilyMember::where('gender', 'Perempuan')
+                ->where('marital_status', 'Kawin')
+                ->whereBetween('birth_date', [$ageLower, $ageUpper])
+                ->where(function($w){ $w->where('is_pregnant', false)->orWhereNull('is_pregnant'); })
                 ->where('uses_contraception', true)
                 ->when($villageId, function ($query) use ($villageId) {
                     $query->whereHas('family.building', function ($q) use ($villageId) {
@@ -208,8 +225,12 @@ class DashboardController extends Controller
                     });
                 })
                 ->count(),
+            // Tidak KB = PUS non‑bumil (usia 15–49), tidak/unknown menggunakan KB
             'no_kb_count' => FamilyMember::where('gender', 'Perempuan')
-                ->where('uses_contraception', false)
+                ->where('marital_status', 'Kawin')
+                ->whereBetween('birth_date', [$ageLower, $ageUpper])
+                ->where(function($w){ $w->where('is_pregnant', false)->orWhereNull('is_pregnant'); })
+                ->where(function($q){ $q->where('uses_contraception', false)->orWhereNull('uses_contraception'); })
                 ->when($villageId, function ($query) use ($villageId) {
                     $query->whereHas('family.building', function ($q) use ($villageId) {
                         $q->where('village_id', $villageId);
@@ -299,8 +320,11 @@ class DashboardController extends Controller
         $sanitationStats['toilet_percentage'] = $totalFamilies > 0 ? ($sanitationStats['toilet_count'] / $totalFamilies) * 100 : 0;
         $sanitationStats['sanitary_toilet_percentage'] = $sanitationStats['toilet_count'] > 0 ? ($sanitationStats['sanitary_toilet_count'] / $sanitationStats['toilet_count']) * 100 : 0;
 
-        // Data kasus KB
+        // Data kasus KB (selaras PUS non‑bumil 15–49)
         $kbCases = FamilyMember::where('gender', 'Perempuan')
+            ->where('marital_status', 'Kawin')
+            ->whereBetween('birth_date', [$ageLower, $ageUpper])
+            ->where(function($w){ $w->where('is_pregnant', false)->orWhereNull('is_pregnant'); })
             ->where('uses_contraception', true)
             ->when($villageId, function ($query) use ($villageId) {
                 $query->whereHas('family.building', function ($q) use ($villageId) {
@@ -310,9 +334,12 @@ class DashboardController extends Controller
             ->with(['family.building.village'])
             ->get();
 
-        // Data kasus Tidak KB
+        // Data kasus Tidak KB (selaras PUS non‑bumil 15–49)
         $noKbCases = FamilyMember::where('gender', 'Perempuan')
-            ->where('uses_contraception', false)
+            ->where('marital_status', 'Kawin')
+            ->whereBetween('birth_date', [$ageLower, $ageUpper])
+            ->where(function($w){ $w->where('is_pregnant', false)->orWhereNull('is_pregnant'); })
+            ->where(function($q){ $q->where('uses_contraception', false)->orWhereNull('uses_contraception'); })
             ->when($villageId, function ($query) use ($villageId) {
                 $query->whereHas('family.building', function ($q) use ($villageId) {
                     $q->where('village_id', $villageId);

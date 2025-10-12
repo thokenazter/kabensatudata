@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\MedicalRecordExport;
 use App\Models\FamilyMember;
 use App\Models\MedicalRecord;
+use App\Models\Village;
 use App\Models\Medicine;
 use App\Models\MedicineUsage;
 use App\Models\User;
@@ -84,7 +85,8 @@ class MedicalRecordController extends Controller
             'priority_level' => 'normal',
             'estimated_service_time' => 15,
         ]);
-        return view('admin.medical-records.create', compact('record', 'medicines', 'members'));
+        $subIndicators = \App\Models\SpmSubIndicator::with('indicator')->orderBy('code')->get();
+        return view('admin.medical-records.create', compact('record', 'medicines', 'members', 'subIndicators'));
     }
 
     public function store(Request $request)
@@ -104,6 +106,8 @@ class MedicalRecordController extends Controller
             'diagnosis_code' => 'nullable|string|max:255',
             'diagnosis_name' => 'nullable|string|max:255',
             'therapy' => 'nullable|string',
+            'spm_sub_indicator_ids' => 'nullable|array',
+            'spm_sub_indicator_ids.*' => 'integer|exists:spm_sub_indicators,id',
             'procedure' => 'nullable|string',
             'priority_level' => 'nullable|in:normal,urgent,emergency',
             'estimated_service_time' => 'nullable|integer|min:5|max:240',
@@ -133,6 +137,11 @@ class MedicalRecordController extends Controller
                 $record = new MedicalRecord($data);
                 $record->save();
 
+                // Sync SPM sub-indicators (multi)
+                if (!empty($data['spm_sub_indicator_ids'] ?? [])) {
+                    $record->spmSubIndicators()->sync($data['spm_sub_indicator_ids']);
+                }
+
                 // Sync denormalized patient data
                 $record->syncPatientData();
                 $record->save();
@@ -155,6 +164,9 @@ class MedicalRecordController extends Controller
                 $record->save();
 
                 DB::commit();
+
+                // Dispatch event untuk update data SPM
+                \App\Events\MedicalRecordCreated::dispatch($record);
                 break; // success
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 DB::rollBack();
@@ -187,10 +199,12 @@ class MedicalRecordController extends Controller
             return [$m->id => $m->full_name . ' • ' . $m->unit];
         });
         $members = FamilyMember::orderBy('name')->limit(100)->pluck('name', 'id');
+        $subIndicators = \App\Models\SpmSubIndicator::with('indicator')->orderBy('code')->get();
         return view('admin.medical-records.edit', [
             'record' => $medicalRecord,
             'medicines' => $medicines,
             'members' => $members,
+            'subIndicators' => $subIndicators,
         ]);
     }
 
@@ -215,6 +229,8 @@ class MedicalRecordController extends Controller
             'priority_level' => 'nullable|in:normal,urgent,emergency',
             'estimated_service_time' => 'nullable|integer|min:5|max:240',
             'workflow_status' => 'nullable|string',
+            'spm_sub_indicator_ids' => 'nullable|array',
+            'spm_sub_indicator_ids.*' => 'integer|exists:spm_sub_indicators,id',
             // Repeater
             'usages' => 'array',
             'usages.*.id' => 'nullable|integer',
@@ -251,6 +267,11 @@ class MedicalRecordController extends Controller
             $medicalRecord->load('medicineUsages.medicine');
             $medicalRecord->medication = $medicalRecord->generateMedicationText();
             $medicalRecord->save();
+
+            // Sync SPM sub-indicators (multi)
+            if (isset($data['spm_sub_indicator_ids'])) {
+                $medicalRecord->spmSubIndicators()->sync($data['spm_sub_indicator_ids']);
+            }
         });
 
         return redirect()->route('panel.medical-records.index')->with('success', 'Rekam medis berhasil diperbarui');
@@ -308,5 +329,141 @@ class MedicalRecordController extends Controller
         }
 
         return Excel::download(new MedicalRecordExport($filters), "medical-records-{$timestamp}.xlsx");
+    }
+
+    public function analytics(Request $request)
+    {
+        // Dropdown options
+        $diagnoses = MedicalRecord::whereNotNull('diagnosis_name')
+            ->select('diagnosis_name')
+            ->distinct()
+            ->orderBy('diagnosis_name')
+            ->pluck('diagnosis_name', 'diagnosis_name');
+
+        $villages = Village::orderBy('name')->pluck('name', 'id');
+
+        // Default filter (bulan berjalan)
+        $defaultFrom = now()->startOfMonth()->toDateString();
+        $defaultUntil = now()->toDateString();
+
+        return view('admin.medical-records.analytics', [
+            'diagnoses' => $diagnoses,
+            'villages' => $villages,
+            'defaultFrom' => $defaultFrom,
+            'defaultUntil' => $defaultUntil,
+        ]);
+    }
+
+    public function analyticsData(Request $request)
+    {
+        $from = $request->input('visit_from');
+        $until = $request->input('visit_until');
+        $gender = $request->input('patient_gender');
+        $diagnosis = $request->input('diagnosis_name');
+        $villageId = $request->input('village_id');
+
+        // Kunjungan per hari
+        $visits = DB::table('medical_records')
+            ->when($from, fn($q) => $q->whereDate('visit_date', '>=', $from))
+            ->when($until, fn($q) => $q->whereDate('visit_date', '<=', $until))
+            ->when($gender, fn($q) => $q->where('patient_gender', $gender))
+            ->when($diagnosis, fn($q) => $q->where('diagnosis_name', $diagnosis))
+            ->selectRaw('DATE(visit_date) as day, COUNT(*) as total')
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get();
+
+        $visitsPerDay = [
+            'type' => 'line',
+            'labels' => $visits->pluck('day')->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Kunjungan',
+                    'data' => $visits->pluck('total')->toArray(),
+                ],
+            ],
+        ];
+
+        // Berdasarkan diagnosa (Top 10)
+        $diagRows = DB::table('medical_records')
+            ->when($from, fn($q) => $q->whereDate('visit_date', '>=', $from))
+            ->when($until, fn($q) => $q->whereDate('visit_date', '<=', $until))
+            ->when($gender, fn($q) => $q->where('patient_gender', $gender))
+            ->when($diagnosis, fn($q) => $q->where('diagnosis_name', $diagnosis))
+            ->selectRaw("COALESCE(NULLIF(TRIM(diagnosis_name), ''), 'Tidak diisi') as diag, COUNT(*) as total")
+            ->groupBy('diag')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get();
+
+        $byDiagnosis = [
+            'type' => 'bar',
+            'labels' => $diagRows->pluck('diag')->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Jumlah',
+                    'data' => $diagRows->pluck('total')->toArray(),
+                ],
+            ],
+        ];
+
+        // Berdasarkan jenis kelamin
+        $genderRows = DB::table('medical_records')
+            ->when($from, fn($q) => $q->whereDate('visit_date', '>=', $from))
+            ->when($until, fn($q) => $q->whereDate('visit_date', '<=', $until))
+            ->when($diagnosis, fn($q) => $q->where('diagnosis_name', $diagnosis))
+            ->selectRaw("COALESCE(NULLIF(TRIM(patient_gender), ''), 'Tidak diisi') as gender, COUNT(*) as total")
+            ->groupBy('gender')
+            ->orderByDesc('total')
+            ->get();
+
+        $byGender = [
+            'type' => 'pie',
+            'labels' => $genderRows->pluck('gender')->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Jenis Kelamin',
+                    'data' => $genderRows->pluck('total')->toArray(),
+                ],
+            ],
+        ];
+
+        // Berdasarkan desa
+        $villageRows = DB::table('medical_records')
+            ->join('family_members', 'medical_records.family_member_id', '=', 'family_members.id')
+            ->join('families', 'family_members.family_id', '=', 'families.id')
+            ->join('buildings', 'families.building_id', '=', 'buildings.id')
+            ->join('villages', 'buildings.village_id', '=', 'villages.id')
+            ->when($from, fn($q) => $q->whereDate('medical_records.visit_date', '>=', $from))
+            ->when($until, fn($q) => $q->whereDate('medical_records.visit_date', '<=', $until))
+            ->when($gender, fn($q) => $q->where('medical_records.patient_gender', $gender))
+            ->when($diagnosis, fn($q) => $q->where('medical_records.diagnosis_name', $diagnosis))
+            ->when($villageId, fn($q) => $q->where('villages.id', $villageId))
+            ->selectRaw('villages.name as village, COUNT(*) as total')
+            ->groupBy('villages.id', 'villages.name')
+            ->orderByDesc('total')
+            ->limit(15)
+            ->get();
+
+        $byVillage = [
+            'type' => 'bar',
+            'labels' => $villageRows->pluck('village')->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Jumlah',
+                    'data' => $villageRows->pluck('total')->toArray(),
+                ],
+            ],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'visitsPerDay' => $visitsPerDay,
+                'byDiagnosis' => $byDiagnosis,
+                'byGender' => $byGender,
+                'byVillage' => $byVillage,
+            ],
+        ]);
     }
 }

@@ -59,6 +59,20 @@
                 <input type="date" name="visit_date" value="{{ old('visit_date', optional($record->visit_date ?? now())->format('Y-m-d')) }}" class="w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-slate-200" required>
             </div>
         </div>
+        <div>
+            <label class="block text-sm text-slate-300 mb-1">Sub‑Indikator SPM (opsional, multi‑select)</label>
+            @php
+                $selected = collect(old('spm_sub_indicator_ids', isset($record) ? $record->spmSubIndicators->pluck('id')->all() : []));
+            @endphp
+            <select name="spm_sub_indicator_ids[]" multiple size="8" class="w-full bg-white/10 border border-white/10 rounded px-3 py-2 text-slate-200">
+                @isset($subIndicators)
+                    @foreach($subIndicators as $si)
+                        <option value="{{ $si->id }}" @selected($selected->contains($si->id))>{{ $si->code }} — {{ $si->name }} ({{ $si->indicator?->name }})</option>
+                    @endforeach
+                @endisset
+            </select>
+            <p class="text-xs text-slate-400 mt-1">Gunakan Ctrl/Cmd untuk memilih lebih dari satu.</p>
+        </div>
     </div>
 
     <!-- Complaint & Anamnesis -->

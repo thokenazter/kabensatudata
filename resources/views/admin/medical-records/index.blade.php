@@ -4,6 +4,7 @@
 <div class="flex items-center justify-between mb-4">
     <h1 class="text-2xl font-bold text-slate-100">Rekam Medis</h1>
     <div class="space-x-2">
+        <a href="{{ route('panel.medical-records.analytics') }}" class="px-3 py-2 rounded-lg text-white bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-400 hover:to-fuchsia-500">Analitik</a>
         <a href="{{ route('panel.medical-records.create') }}" class="px-3 py-2 rounded-lg text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500">Tambah</a>
         <a href="{{ route('panel.medical-records.export', array_merge(request()->query(), ['format'=>'excel'])) }}" class="px-3 py-2 rounded bg-white/10 border border-white/10 text-slate-200">Export Excel</a>
         <a href="{{ route('panel.medical-records.export', array_merge(request()->query(), ['format'=>'csv'])) }}" class="px-3 py-2 rounded bg-white/10 border border-white/10 text-slate-200">Export CSV</a>

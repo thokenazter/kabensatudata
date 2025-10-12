@@ -35,8 +35,10 @@ class MedicalRecordController extends Controller
      */
     public function create(FamilyMember $familyMember)
     {
+        $subIndicators = \App\Models\SpmSubIndicator::with('indicator')->orderBy('code')->get();
         return view('medical-records.create', [
-            'familyMember' => $familyMember
+            'familyMember' => $familyMember,
+            'subIndicators' => $subIndicators,
         ]);
     }
 
@@ -59,6 +61,8 @@ class MedicalRecordController extends Controller
             'diagnosis_code' => 'nullable|string|max:255',
             'diagnosis_name' => 'nullable|string|max:255',
             'therapy' => 'nullable|string',
+            'spm_sub_indicator_ids' => 'nullable|array',
+            'spm_sub_indicator_ids.*' => 'integer|exists:spm_sub_indicators,id',
             'medication' => 'nullable|string',
             'procedure' => 'nullable|string',
         ]);
@@ -67,7 +71,13 @@ class MedicalRecordController extends Controller
         $validated['created_by'] = auth()->id();
 
         // Simpan rekam medis
-        $familyMember->medicalRecords()->create($validated);
+        $record = $familyMember->medicalRecords()->create($validated);
+        if (!empty($validated['spm_sub_indicator_ids'])) {
+            $record->spmSubIndicators()->sync($validated['spm_sub_indicator_ids']);
+        }
+
+        // Dispatch event untuk update data SPM
+        \App\Events\MedicalRecordCreated::dispatch($record);
 
         return redirect()
             ->route('medical-records.index', $familyMember)
@@ -150,12 +160,17 @@ class MedicalRecordController extends Controller
             'diagnosis_code' => 'nullable|string|max:255',
             'diagnosis_name' => 'nullable|string|max:255',
             'therapy' => 'nullable|string',
+            'spm_sub_indicator_ids' => 'nullable|array',
+            'spm_sub_indicator_ids.*' => 'integer|exists:spm_sub_indicators,id',
             'medication' => 'nullable|string',
             'procedure' => 'nullable|string',
         ]);
 
         // Update the medical record
         $medicalRecord->update($validated);
+        if (isset($validated['spm_sub_indicator_ids'])) {
+            $medicalRecord->spmSubIndicators()->sync($validated['spm_sub_indicator_ids']);
+        }
 
         return redirect()
             ->route('medical-records.show', [$familyMember, $medicalRecord])

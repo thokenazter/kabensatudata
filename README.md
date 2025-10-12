@@ -1,22 +1,29 @@
-
-  Class "App\Filament\Resources\MedicalRecordResource\Pages\CurrentServing" not found
-
-  at app/Filament/Resources/MedicalRecordResource.php:1183
-    1179▕
-    1180▕             // NEW: Queue Dashboard & Display
-    1181▕             'queue-dashboard' => Pages\QueueDashboard::route('/queue-dashboard'),
-    1182▕             'queue-display' => Pages\QueueDisplay::route('/queue-display'),
-  ➜ 1183▕             'current-serving' => Pages\CurrentServing::route('/current-serving/{role}'),
-    1184▕         ];
-    1185▕     }
-    1186▕
-    1187▕     // NEW: Static methods untuk queue management
-
-      +37 vendor frames
-
-  38  [internal]:0
-      Illuminate\Foundation\Application::Illuminate\Foundation\{closure}(Object(Filament\FilamentServiceProvider), "Filament\FilamentServiceProvider")
-      +6 vendor frames
-
-  45  artisan:13
-      Illuminate\Foundation\Application::handleCommand(Object(Symfony\Component\Console\Input\ArgvInput))
+SURAT PERINTAH PELAKSANAAN TUGAS													
+Nomor : 800.1.11.1/004/2025													
+                          
+                          
+Dasar : 	1.		{Berdasarkan Surat Kepala Dinas Kesehatan Kabupaten Kepulauan Aru tertanggal 15 September 2025 nomor : 800/1421}										
+                          
+  2.		Untuk Kepentingan Dinas										
+                          
+                          
+Diperintahkan Kepada :													
+  1		Nama/NIP	:	{Thobias Edwin Dasmaselah, S.KM}								
+      NIP	:	{19950612 202421 1 005}								
+      Pangkat/Gol	:	{IX}								
+      Jabatan 	:	{Administrator Kesehatan}								
+                          
+                          
+Maksud Tugas		:	{Mengikuti Kegiatan Workshop Perencanaan Kebutuhan Sumber Daya Manusia Kesehatan}										
+Lama Tugas		:	{Dua ( 2 )} Hari,  Tanggal {18 s/d 19 September 2025}										
+                          
+                          
+                  Dikeluarkan di	:	Dobo		
+                  Pada Tanggal	:	{17 September 2025}		
+                          
+                  Kepala Puskesmas				
+                          
+                          
+                          
+                  Ns. M. ILELY., S.Kep				
+                   NIP. 19830405 200604 2 022				

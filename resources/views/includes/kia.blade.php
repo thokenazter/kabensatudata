@@ -38,6 +38,9 @@
                                 <dt class="text-sm font-semibold text-gray-600 tracking-wide uppercase">
                                     Menggunakan KB
                                 </dt>
+                                <div class="text-[11px] text-gray-500 mt-1">
+                                    PUS (perempuan kawin 15–49, tidak hamil)
+                                </div>
                                 
                                 <!-- Konten dengan desain yang lebih elegan -->
                                 <dd class="group relative">
@@ -66,6 +69,7 @@
                                             <!-- Header tooltip -->
                                             <div class="pb-3 mb-3 border-b border-gray-200">
                                                 <h3 class="text-lg font-semibold text-gray-900">Detail Pengguna KB ({{ $kbCases ? $kbCases->count() : 0 }} orang)</h3>
+                                                <div class="text-[11px] text-gray-500">PUS non‑bumil usia 15–49</div>
                                             </div>
                                             
                                             <!-- Daftar kasus -->
