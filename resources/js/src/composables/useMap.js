@@ -43,6 +43,7 @@ export function useMap() {
   let userMarker = null
   let geoWatchId = null
   let orientationListener = null
+  let orientationAbsoluteAttached = false
   let lastHeading = null
 
   async function ensureRoutingLoaded() {
@@ -270,13 +271,16 @@ export function useMap() {
   }
 
   async function setupOrientationTracking() {
-    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
-    if (orientationListener) return
+    if (typeof window === 'undefined') return false
+    if (!('DeviceOrientationEvent' in window) && !('ondeviceorientationabsolute' in window) && !('DeviceMotionEvent' in window)) {
+      return false
+    }
+    if (orientationListener) return true
     try {
       if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         const permission = await DeviceOrientationEvent.requestPermission()
         if (permission !== 'granted') {
-          return
+          return false
         }
       }
     } catch (_) {
@@ -285,14 +289,25 @@ export function useMap() {
     orientationListener = (event) => handleOrientation(event)
     try {
       window.addEventListener('deviceorientation', orientationListener, true)
+      if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', orientationListener, true)
+        orientationAbsoluteAttached = true
+      }
     } catch (_) {
+      orientationAbsoluteAttached = false
       orientationListener = null
+      return false
     }
+    return true
   }
 
   function stopOrientationTracking() {
     if (orientationListener) {
       window.removeEventListener('deviceorientation', orientationListener, true)
+      if (orientationAbsoluteAttached) {
+        window.removeEventListener('deviceorientationabsolute', orientationListener, true)
+        orientationAbsoluteAttached = false
+      }
       orientationListener = null
     }
     lastHeading = null
@@ -464,6 +479,7 @@ export function useMap() {
       navigation.setError('Perangkat tidak mendukung geolocation.')
       return
     }
+    const orientationSetup = setupOrientationTracking()
     let currentPosition
     try {
       currentPosition = await getCurrentPosition()
@@ -480,7 +496,7 @@ export function useMap() {
     ensureUserMarker(userLatLng)
     map.flyTo(userLatLng, Math.max(map.getZoom(), 16), { duration: 0.8 })
     setupLocationWatch()
-    await setupOrientationTracking()
+    await orientationSetup
     await computeRoute(userLatLng, destination, building)
   }
 
