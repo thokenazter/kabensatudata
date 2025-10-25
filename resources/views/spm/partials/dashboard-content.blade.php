@@ -150,9 +150,22 @@
 
 <div class="space-y-4">
   @foreach ($tree as $ind)
-    <details class="{{ $cardCls }}" @if($loop->first) open @endif>
+    <details class="{{ $cardCls }}">
       <summary class="cursor-pointer select-none list-none px-4 py-3 border-b {{ $isPanel ? 'border-white/10 text-slate-100' : 'text-gray-800' }} font-semibold flex items-center justify-between">
-        <span>{{ $ind['code'] }} — {{ $ind['name'] }}</span>
+        @php
+          $code = $ind['code'] ?? '';
+          $num = null;
+          if (preg_match('/SPM_(\d+)/', $code, $m)) {
+            $num = (int)($m[1] ?? null);
+          }
+        @endphp
+        <span>
+          @if(!is_null($num))
+            {{ $num }}. {{ $ind['name'] }}
+          @else
+            {{ $ind['code'] }} — {{ $ind['name'] }}
+          @endif
+        </span>
         <span class="text-sm {{ $subtitleCls }}">{{ count($ind['subs']) }} sub-indikator</span>
       </summary>
       <div class="p-4 overflow-x-auto {{ $tableText }}">

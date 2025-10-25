@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/iconsatudata.PNG') }}">
     <link rel="shortcut icon" href="{{ asset('images/iconsatudata.PNG') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ asset('images/iconsatudata.PNG') }}">
+    @include('includes.meta')
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>

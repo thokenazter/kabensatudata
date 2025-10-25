@@ -75,12 +75,18 @@
                 <p class="text-gray-500 mb-4">Indeks Keluarga Sehat belum dihitung untuk keluarga ini</p>
                 
                 @if(auth()->check() && auth()->user()->can('calculate-iks'))
-                    <a href="{{ route('families.calculate-iks', $family->id) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Hitung IKS Sekarang
-                    </a>
+                    @if(Route::has('families.calculate-iks'))
+                        <a href="{{ route('families.calculate-iks', $family->id) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Hitung IKS Sekarang
+                        </a>
+                    @else
+                        <div class="mt-2 text-sm text-gray-500">
+                            Rute perhitungan IKS belum dikonfigurasi. Hubungi administrator untuk mengaktifkan fitur ini.
+                        </div>
+                    @endif
                 @endif
             </div>
         @endif

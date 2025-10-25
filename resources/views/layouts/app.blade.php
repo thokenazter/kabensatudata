@@ -9,6 +9,8 @@
     <link rel="shortcut icon" href="{{ asset('images/iconsatudata.PNG') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ asset('images/iconsatudata.PNG') }}">
 
+    @include('includes.meta')
+
     <script>
         const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
     </script>
