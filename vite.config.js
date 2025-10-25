@@ -62,6 +62,19 @@ export default defineConfig({
                             },
                         },
                     },
+                    {
+                        // Building detail popups
+                        urlPattern: ({ url }) => url.pathname.startsWith('/map/buildings/'),
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'building-detail-cache',
+                            networkTimeoutSeconds: 4,
+                            expiration: {
+                                maxEntries: 200,
+                                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+                            },
+                        },
+                    },
                 ],
             },
         }),

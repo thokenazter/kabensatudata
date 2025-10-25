@@ -36,6 +36,7 @@
       </div>
 
       <div class="absolute right-3 z-[1000] flex flex-col gap-2 items-end top-20 md:top-3">
+        <NavigationPanel />
         <OfflineControls />
         <SyncStatus />
       </div>
@@ -52,6 +53,7 @@ import MapLegend from './components/Map/MapLegend.vue'
 import VillageNav from './components/Map/VillageNav.vue'
 import OfflineControls from './components/Offline/OfflineControls.vue'
 import SyncStatus from './components/Offline/SyncStatus.vue'
+import NavigationPanel from './components/Map/NavigationPanel.vue'
 
 const panelsVisible = ref(true)
 

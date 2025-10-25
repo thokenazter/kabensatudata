@@ -1,25 +1,32 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'health-map-db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 async function getDb() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('buildings')) {
-        const store = db.createObjectStore('buildings', { keyPath: 'id' })
-        store.createIndex('byVillage', 'village_id')
-        store.createIndex('byUpdatedAt', 'updated_at')
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains('buildings')) {
+          const store = db.createObjectStore('buildings', { keyPath: 'id' })
+          store.createIndex('byVillage', 'village_id')
+          store.createIndex('byUpdatedAt', 'updated_at')
+        }
+        if (!db.objectStoreNames.contains('families')) {
+          const store = db.createObjectStore('families', { keyPath: 'id' })
+          store.createIndex('byBuilding', 'building_id')
+        }
+        if (!db.objectStoreNames.contains('sync_queue')) {
+          db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
+        }
+        if (!db.objectStoreNames.contains('meta')) {
+          db.createObjectStore('meta')
+        }
       }
-      if (!db.objectStoreNames.contains('families')) {
-        const store = db.createObjectStore('families', { keyPath: 'id' })
-        store.createIndex('byBuilding', 'building_id')
-      }
-      if (!db.objectStoreNames.contains('sync_queue')) {
-        db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
-      }
-      if (!db.objectStoreNames.contains('meta')) {
-        db.createObjectStore('meta')
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('routes')) {
+          db.createObjectStore('routes', { keyPath: 'id' })
+        }
       }
     },
   })
@@ -46,8 +53,21 @@ export const OfflineManager = {
   async saveFamiliesForBuilding(buildingId, families) {
     const db = await getDb()
     const tx = db.transaction('families', 'readwrite')
+    const store = tx.store
+    try {
+      const index = store.index('byBuilding')
+      const range = IDBKeyRange?.only ? IDBKeyRange.only(buildingId) : buildingId
+      let cursor = await index.openCursor(range)
+      while (cursor) {
+        await cursor.delete()
+        cursor = await cursor.continue()
+      }
+    } catch (_) {
+      // ignore cleanup issues; we'll still upsert new data below
+    }
+
     for (const f of families) {
-      await tx.store.put({ ...f, building_id: buildingId })
+      await store.put({ ...f, building_id: buildingId })
     }
     await tx.done
   },
@@ -76,5 +96,19 @@ export const OfflineManager = {
     const db = await getDb()
     return db.get('meta', key)
   },
+  async saveRoute(buildingId, payload) {
+    if (!buildingId) return
+    const db = await getDb()
+    const record = {
+      id: String(buildingId),
+      updated_at: new Date().toISOString(),
+      ...payload,
+    }
+    await db.put('routes', record)
+  },
+  async getRoute(buildingId) {
+    if (!buildingId) return null
+    const db = await getDb()
+    return db.get('routes', String(buildingId))
+  },
 }
-

@@ -8,7 +8,7 @@
     </div>
     <div class="space-y-2">
       <button class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1 disabled:opacity-60 disabled:cursor-not-allowed"
-              :disabled="isDownloading"
+              :disabled="isDownloading || !offline.isOnline"
               @click="downloadArea">
         <span v-if="!isDownloading">Download area saat ini</span>
         <span v-else class="inline-flex items-center gap-2">
@@ -19,6 +19,7 @@
           Mengunduh...
         </span>
       </button>
+      <p v-if="!offline.isOnline" class="text-xs text-slate-500">Sambungkan ke internet untuk memperbarui cache peta.</p>
       <div class="text-xs text-slate-600">
         Area tersimpan: {{ offline.cachedAreas.length }}
       </div>
@@ -29,6 +30,7 @@
             <div class="font-medium">Area {{ idx + 1 }}</div>
             <div class="text-slate-500">{{ formatDate(area.date) }}</div>
             <div class="text-slate-400">BBOX: {{ fmtBbox(area.bbox) }}</div>
+            <div class="text-slate-400">Bangunan: {{ area.buildingCount ?? '-' }} | Detail keluarga: {{ area.familiesPrefetched ?? 0 }}/{{ area.familiesRequested ?? area.buildingCount ?? 0 }}</div>
           </div>
           <div class="flex flex-col gap-1">
             <button class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700" @click="gotoArea(area)">Lihat</button>
@@ -62,20 +64,28 @@ function getMap() {
 }
 
 async function downloadArea() {
+  if (!offline.isOnline) {
+    status.value = 'Gagal: tidak dapat mengunduh saat offline'
+    setTimeout(() => { status.value = '' }, 3000)
+    return
+  }
   const map = getMap()
   if (!map) {
-    status.value = 'Peta belum siap'
+    status.value = 'Gagal: peta belum siap'
     setTimeout(() => { status.value = '' }, 2000)
     return
   }
   if (isDownloading.value) return
   isDownloading.value = true
-  status.value = 'Mengunduh area...'
+  status.value = 'Info: mengunduh area...'
   try {
-    await cacheViewport(map)
-    status.value = 'Area tersimpan untuk penggunaan offline'
+    const summary = await cacheViewport(map)
+    const saved = summary?.savedBuildings ?? 0
+    const familyPrefetch = summary?.familiesPrefetched?.succeeded ?? 0
+    const familyRequested = summary?.familiesPrefetched?.requested ?? 0
+    status.value = `Sukses: area tersimpan (${saved} bangunan, ${familyPrefetch}/${familyRequested} detail keluarga) — total area ${offline.cachedAreas.length}`
   } catch (e) {
-    status.value = 'Gagal mengunduh area'
+    status.value = 'Gagal: pengunduhan area tidak berhasil'
   } finally {
     isDownloading.value = false
     setTimeout(() => { status.value = '' }, 3000)
@@ -87,7 +97,7 @@ const status = ref('')
 const statusClass = computed(() => {
   if (!status.value) return ''
   if (status.value.startsWith('Gagal')) return 'text-red-600'
-  if (status.value.startsWith('Mengunduh')) return 'text-slate-600'
+  if (status.value.startsWith('Info')) return 'text-slate-600'
   return 'text-emerald-600'
 })
 
@@ -102,12 +112,13 @@ function fmtBbox(bbox) {
 }
 
 function gotoArea(area) {
-  if (!leafletMap?.value) return
+  const map = getMap()
+  if (!map) return
   const bbox = area.bbox
   if (!Array.isArray(bbox) || bbox.length !== 4) return
   const [w, s, e, n] = bbox.map(Number)
   const bounds = L.latLngBounds(L.latLng(s, w), L.latLng(n, e))
-  leafletMap.value.fitBounds(bounds, { padding: [20, 20] })
+  map.fitBounds(bounds, { padding: [20, 20] })
 }
 
 async function removeArea(index) {

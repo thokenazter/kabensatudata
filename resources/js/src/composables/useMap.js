@@ -5,11 +5,17 @@ import { useMapStore } from '../stores/mapStore'
 import { MapService } from '../services/MapService'
 import { useFilters } from './useFilters'
 import { useOfflineMap } from './useOfflineMap'
+import { OfflineManager } from '../services/OfflineManager'
+import { useNavigationStore } from '../stores/navigationStore'
+
+const DEFAULT_OSRM_SERVICE_URL = 'https://router.project-osrm.org/route/v1'
+const OSRM_SERVICE_URL = (typeof window !== 'undefined' && window.__mapOsrmUrl) || DEFAULT_OSRM_SERVICE_URL
 
 export function useMap() {
   const store = useMapStore()
   const { buildingPassesFilters } = useFilters()
   const { saveBuildings, getOfflineBuildingsByBbox } = useOfflineMap()
+  const navigation = useNavigationStore()
 
   const canViewSensitiveHealth = typeof window !== 'undefined' && Boolean(window.__canViewSensitiveHealth)
 
@@ -33,6 +39,11 @@ export function useMap() {
   let tileLayer
   const detailCache = new Map()
   let routeControl = null
+  let fallbackRouteLine = null
+  let userMarker = null
+  let geoWatchId = null
+  let orientationListener = null
+  let lastHeading = null
 
   async function ensureRoutingLoaded() {
     if (L && L.Routing) return
@@ -96,34 +107,381 @@ export function useMap() {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`
   }
 
-  async function startNavigation(toLat, toLon) {
+  // Navigation helpers and logic defined below
+
+  function buildingLabel(building) {
+    if (!building) return 'Bangunan'
+    const number = building.building_number ? `Bangunan ${building.building_number}` : 'Bangunan'
+    const village = building.village_name ? `, ${building.village_name}` : ''
+    return `${number}${village}`
+  }
+
+  function toRadians(deg) {
+    return (Number(deg) * Math.PI) / 180
+  }
+
+  function calculateBearing(from, to) {
+    const lat1 = toRadians(from.lat)
+    const lat2 = toRadians(to.lat)
+    const dLon = toRadians(to.lng - from.lng)
+    const y = Math.sin(dLon) * Math.cos(lat2)
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon)
+    const brng = (Math.atan2(y, x) * 180) / Math.PI
+    return (brng + 360) % 360
+  }
+
+  function bearingToCardinal(bearing) {
+    if (!Number.isFinite(bearing)) return ''
+    const dirs = ['Utara', 'Timur Laut', 'Timur', 'Tenggara', 'Selatan', 'Barat Daya', 'Barat', 'Barat Laut']
+    const idx = Math.round(bearing / 45) % dirs.length
+    return dirs[idx]
+  }
+
+  function clearRouteControl() {
+    if (routeControl && mapRef.value) {
+      try { mapRef.value.removeControl(routeControl) } catch (_) {}
+    }
+    routeControl = null
+  }
+
+  function clearFallbackRouteLine() {
+    if (fallbackRouteLine && mapRef.value) {
+      try { mapRef.value.removeLayer(fallbackRouteLine) } catch (_) {}
+    }
+    fallbackRouteLine = null
+  }
+
+  function createUserMarkerIcon(heading) {
+    const deg = Number.isFinite(heading) ? heading : 0
+    return L.divIcon({
+      className: 'user-location-icon',
+      html: `<div class="user-location-marker" style="--heading:${deg}deg"><span class="user-location-arrow"></span><span class="user-location-dot"></span></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    })
+  }
+
+  function ensureUserMarker(latlng) {
+    const map = mapRef.value
+    if (!map) return
+    const heading = navigation.heading
+    if (!userMarker) {
+      userMarker = L.marker(latlng, {
+        icon: createUserMarkerIcon(heading),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 1000,
+      })
+      userMarker.addTo(map)
+    } else {
+      userMarker.setLatLng(latlng)
+    }
+  }
+
+  function applyHeadingToMarker(heading) {
+    if (!userMarker) return
+    userMarker.setIcon(createUserMarkerIcon(heading))
+  }
+
+  function getCurrentPosition(options = {}) {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000, ...options },
+      )
+    })
+  }
+
+  function updateDistanceToDestination(userLatLng) {
+    const map = mapRef.value
+    const dest = navigation.destination
+    if (!map || !dest) return
+    const destLatLng = L.latLng(dest.lat, dest.lng)
+    const distance = map.distance(userLatLng, destLatLng)
+    if (navigation.mode !== 'direct') {
+      navigation.totalDistance = distance
+    }
+  }
+
+  function updateDirectLine(userLatLng) {
+    const map = mapRef.value
+    const dest = navigation.destination
+    if (!map || !dest) return
+    const destLatLng = L.latLng(dest.lat, dest.lng)
+    if (fallbackRouteLine) {
+      fallbackRouteLine.setLatLngs([userLatLng, destLatLng])
+    }
+    const distance = map.distance(userLatLng, destLatLng)
+    const heading = calculateBearing(userLatLng, destLatLng)
+    navigation.updateDirectGuidance({ distance, headingText: bearingToCardinal(heading) })
+  }
+
+  function handleLocationUpdate(latlng, accuracy) {
+    navigation.setUserLocation({ lat: latlng.lat, lng: latlng.lng, accuracy })
+    ensureUserMarker(latlng)
+    if (navigation.mode === 'direct') {
+      updateDirectLine(latlng)
+    } else {
+      updateDistanceToDestination(latlng)
+    }
+  }
+
+  function setupLocationWatch() {
+    if (!('geolocation' in navigator)) return
+    if (geoWatchId !== null) {
+      try { navigator.geolocation.clearWatch(geoWatchId) } catch (_) {}
+      geoWatchId = null
+    }
+    geoWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude)
+        handleLocationUpdate(latlng, pos.coords.accuracy)
+      },
+      () => {
+        navigation.setError('Gagal memperbarui lokasi pengguna.')
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 },
+    )
+  }
+
+  function normalizeHeading(value) {
+    if (!Number.isFinite(value)) return null
+    const normalized = ((value % 360) + 360) % 360
+    return normalized
+  }
+
+  function handleOrientation(event) {
+    let heading = null
+    if (typeof event.webkitCompassHeading === 'number' && !Number.isNaN(event.webkitCompassHeading)) {
+      heading = event.webkitCompassHeading
+    } else if (typeof event.alpha === 'number' && !Number.isNaN(event.alpha)) {
+      heading = event.absolute ? 360 - event.alpha : 360 - event.alpha
+    }
+    heading = normalizeHeading(heading)
+    if (heading === null) return
+    if (lastHeading !== null) {
+      const diff = Math.abs(heading - lastHeading)
+      if (Math.min(diff, 360 - diff) < 1) return
+    }
+    lastHeading = heading
+    navigation.setHeading(heading)
+    applyHeadingToMarker(heading)
+  }
+
+  async function setupOrientationTracking() {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
+    if (orientationListener) return
+    try {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission()
+        if (permission !== 'granted') {
+          return
+        }
+      }
+    } catch (_) {
+      // ignore permission errors; we will fall back silently
+    }
+    orientationListener = (event) => handleOrientation(event)
+    try {
+      window.addEventListener('deviceorientation', orientationListener, true)
+    } catch (_) {
+      orientationListener = null
+    }
+  }
+
+  function stopOrientationTracking() {
+    if (orientationListener) {
+      window.removeEventListener('deviceorientation', orientationListener, true)
+      orientationListener = null
+    }
+    lastHeading = null
+    navigation.setHeading(null)
+  }
+
+  function mapInstructionsForStore(instructions = []) {
+    if (!Array.isArray(instructions)) return []
+    return instructions.map((step) => ({
+      text: step.text,
+      distance: step.distance,
+      time: step.time,
+    }))
+  }
+
+  async function useDirectGuidance(userLatLng, destination) {
+    const map = mapRef.value
+    if (!map) return
+    clearRouteControl()
+    clearFallbackRouteLine()
+    fallbackRouteLine = L.polyline([userLatLng, destination], {
+      color: '#f97316',
+      weight: 4,
+      opacity: 0.9,
+      dashArray: '6,6',
+    })
+    fallbackRouteLine.addTo(map)
+    const distance = map.distance(userLatLng, destination)
+    const heading = calculateBearing(userLatLng, destination)
+    navigation.setRoute({
+      mode: 'direct',
+      instructions: [{ text: `Arah ${bearingToCardinal(heading)}`, distance }],
+      totalDistance: distance,
+      totalDuration: 0,
+      source: 'Offline (garis lurus)',
+    })
+    navigation.setStatus('Mode offline: ikuti garis menuju bangunan')
+    map.fitBounds(L.latLngBounds([userLatLng, destination]), { padding: [40, 40] })
+  }
+
+  async function useOfflineRoute(userLatLng, destination, building) {
+    const map = mapRef.value
+    if (!map) return
+    navigation.setStatus('Mencari rute offline...')
+    clearRouteControl()
+    clearFallbackRouteLine()
+    try {
+      const cached = await OfflineManager.getRoute(building?.id)
+      if (cached && Array.isArray(cached.coordinates) && cached.coordinates.length) {
+        fallbackRouteLine = L.polyline(cached.coordinates.map(([lat, lng]) => [lat, lng]), {
+          color: '#2563eb',
+          weight: 5,
+          opacity: 0.85,
+        })
+        fallbackRouteLine.addTo(map)
+        const distance = cached.summary?.distance ?? map.distance(userLatLng, destination)
+        navigation.setRoute({
+          mode: 'cached',
+          instructions: Array.isArray(cached.instructions) ? cached.instructions : [],
+          totalDistance: distance,
+          totalDuration: cached.summary?.duration ?? 0,
+          source: 'Offline (rute tersimpan)',
+        })
+        navigation.setStatus('Menggunakan rute tersimpan (offline)')
+        map.fitBounds(fallbackRouteLine.getBounds(), { padding: [40, 40] })
+        return
+      }
+    } catch (_) {}
+    await useDirectGuidance(userLatLng, destination)
+  }
+
+  async function computeRoute(userLatLng, destination, building) {
+    const map = mapRef.value
+    if (!map) return
+    navigation.setStatus('Menghitung rute...')
+    clearRouteControl()
+    clearFallbackRouteLine()
     try {
       await ensureRoutingLoaded()
-      if (!('geolocation' in navigator)) throw new Error('Geolocation tidak tersedia')
-      const pos = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 })
-      })
-      const from = L.latLng(pos.coords.latitude, pos.coords.longitude)
-      const to = L.latLng(toLat, toLon)
-      if (routeControl) {
-        try { mapRef.value.removeControl(routeControl) } catch (_) {}
-        routeControl = null
-      }
       if (!L.Routing) throw new Error('Routing belum termuat')
       routeControl = L.Routing.control({
-        waypoints: [from, to],
-        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+        waypoints: [userLatLng, destination],
+        router: L.Routing.osrmv1({ serviceUrl: OSRM_SERVICE_URL }),
         addWaypoints: false,
         draggableWaypoints: false,
         fitSelectedRoutes: true,
-        lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.8 }] },
+        lineOptions: { styles: [{ color: '#2563eb', weight: 5, opacity: 0.85 }] },
         createMarker: () => null,
         show: false,
       })
-      routeControl.addTo(mapRef.value)
-    } catch (e) {
-      window.open(gmapsUrl(toLat, toLon), '_blank')
+      routeControl.on('routesfound', async (ev) => {
+        const route = ev?.routes?.[0]
+        if (!route) {
+          await useOfflineRoute(userLatLng, destination, building)
+          return
+        }
+        const instructions = mapInstructionsForStore(route.instructions)
+        const totalDistance = route.summary?.totalDistance ?? map.distance(userLatLng, destination)
+        const totalDuration = route.summary?.totalTime ?? 0
+        navigation.setRoute({
+          mode: 'online',
+          instructions,
+          totalDistance,
+          totalDuration,
+          source: 'Online (OSRM)',
+        })
+        navigation.setStatus('Rute online siap')
+        try {
+          await OfflineManager.saveRoute(building?.id, {
+            destination: {
+              id: building?.id ?? null,
+              label: buildingLabel(building),
+              lat: building?.latitude,
+              lng: building?.longitude,
+            },
+            coordinates: route.coordinates?.map((c) => [c.lat, c.lng]) ?? [],
+            instructions,
+            summary: {
+              distance: totalDistance,
+              duration: totalDuration,
+            },
+          })
+        } catch (_) {}
+      })
+      routeControl.on('routingerror', async () => {
+        await useOfflineRoute(userLatLng, destination, building)
+      })
+      routeControl.addTo(map)
+    } catch (_) {
+      await useOfflineRoute(userLatLng, destination, building)
     }
+  }
+
+  function stopNavigation() {
+    clearRouteControl()
+    clearFallbackRouteLine()
+    stopOrientationTracking()
+    if (userMarker && mapRef.value) {
+      try { mapRef.value.removeLayer(userMarker) } catch (_) {}
+    }
+    userMarker = null
+    if (geoWatchId !== null) {
+      try { navigator.geolocation.clearWatch(geoWatchId) } catch (_) {}
+      geoWatchId = null
+    }
+    navigation.reset()
+    navigation.setStopHandler(stopNavigation)
+  }
+
+  async function startNavigation(building) {
+    const map = mapRef.value
+    if (!map) return
+    if (!building || !Number.isFinite(Number(building.latitude)) || !Number.isFinite(Number(building.longitude))) {
+      navigation.setError('Lokasi bangunan tidak valid.')
+      return
+    }
+    stopNavigation()
+    const destination = L.latLng(Number(building.latitude), Number(building.longitude))
+    navigation.start({
+      destination: {
+        id: building.id ?? null,
+        label: buildingLabel(building),
+        lat: destination.lat,
+        lng: destination.lng,
+      },
+    })
+    navigation.setStopHandler(stopNavigation)
+    if (!('geolocation' in navigator)) {
+      navigation.setError('Perangkat tidak mendukung geolocation.')
+      return
+    }
+    let currentPosition
+    try {
+      currentPosition = await getCurrentPosition()
+    } catch (_) {
+      navigation.setError('Tidak dapat mengambil lokasi Anda.')
+      return
+    }
+    const userLatLng = L.latLng(currentPosition.coords.latitude, currentPosition.coords.longitude)
+    navigation.setUserLocation({
+      lat: userLatLng.lat,
+      lng: userLatLng.lng,
+      accuracy: currentPosition.coords.accuracy,
+    })
+    ensureUserMarker(userLatLng)
+    map.flyTo(userLatLng, Math.max(map.getZoom(), 16), { duration: 0.8 })
+    setupLocationWatch()
+    await setupOrientationTracking()
+    await computeRoute(userLatLng, destination, building)
   }
 
   function createMarker(building) {
@@ -179,6 +537,9 @@ export function useMap() {
       const sensitiveNote = !canViewSensitiveHealth
         ? '<div class="text-[10px] text-slate-400 italic mb-2">Informasi penyakit disembunyikan untuk pengguna non tenaga kesehatan.</div>'
         : ''
+      const offlineNotice = detail?.offline
+        ? '<div class="text-[10px] text-amber-600 italic mb-2">Data ditampilkan dari cache offline.</div>'
+        : ''
       const navButtons = `
         <div class="mt-2 flex gap-2">
           <button class="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 nav-btn" data-lat="${building.latitude}" data-lon="${building.longitude}">Navigasi</button>
@@ -193,6 +554,7 @@ export function useMap() {
           <div class="mb-2 text-xs text-slate-700">Keluarga: ${detail.families?.length ?? 0} | IKS: ${iksLabel(building.iks_status)}</div>
           ${chips}
           ${sensitiveNote}
+          ${offlineNotice}
           <div class="family-list">${fams || '<div class="text-slate-500">Tidak ada data keluarga</div>'}</div>
           ${navButtons}
         </div>
@@ -213,7 +575,10 @@ export function useMap() {
       if (cached) {
         e.popup.setContent(renderDetail(cached))
         const el = e.popup.getElement()?.querySelector('.nav-btn')
-        if (el) el.addEventListener('click', () => startNavigation(building.latitude, building.longitude), { once: true })
+        if (el) el.addEventListener('click', (evt) => {
+          evt.preventDefault()
+          startNavigation(building)
+        }, { once: true })
         return
       }
       try {
@@ -221,7 +586,10 @@ export function useMap() {
         detailCache.set(building.id, detail)
         e.popup.setContent(renderDetail(detail))
         const el = e.popup.getElement()?.querySelector('.nav-btn')
-        if (el) el.addEventListener('click', () => startNavigation(building.latitude, building.longitude), { once: true })
+        if (el) el.addEventListener('click', (evt) => {
+          evt.preventDefault()
+          startNavigation(building)
+        }, { once: true })
       } catch (err) {
         e.popup.setContent(`<div class="custom-popup">${baseHeader}<div class="text-red-600">Gagal memuat detail</div></div>`)
       }
@@ -264,6 +632,7 @@ export function useMap() {
       const bbox = currentBbox(map)
       const buildings = await MapService.getBuildingsByBbox(bbox)
       store.setBuildings(buildings)
+      store.setError(null)
       await saveBuildings(buildings)
       await addOrUpdateMarkers(buildings)
       store.setLastFetchedBbox(bbox)
@@ -388,5 +757,7 @@ export function useMap() {
     return map
   }
 
-  return { initMap, mapRef, fetchAndRender }
+  navigation.setStopHandler(stopNavigation)
+
+  return { initMap, mapRef, fetchAndRender, stopNavigation }
 }

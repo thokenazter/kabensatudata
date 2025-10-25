@@ -13,18 +13,22 @@
 </template>
 
 <script setup>
-import { onMounted, ref, provide } from 'vue'
+import { onMounted, ref, provide, onBeforeUnmount } from 'vue'
 import { useMapStore } from '../../stores/mapStore'
 import { useMap } from '../../composables/useMap'
 
 const map = useMapStore()
-const { initMap, mapRef } = useMap()
+const { initMap, mapRef, stopNavigation } = useMap()
 const mapEl = ref(null)
 const container = ref(null)
 
 onMounted(() => {
   const m = initMap(mapEl.value, map.center, map.zoom)
   provide('leafletMap', mapRef)
+})
+
+onBeforeUnmount(() => {
+  stopNavigation()
 })
 </script>
 
@@ -69,6 +73,42 @@ onMounted(() => {
 
 .custom-popup { max-width: 320px; font-size: 14px; }
 .custom-popup .popup-header { border-bottom: 1px solid #eee; margin-bottom: 8px; padding-bottom: 6px; }
+
+.user-location-icon {
+  transition: transform 0.15s ease;
+}
+
+.user-location-marker {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.user-location-arrow {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 14px solid #2563eb;
+  transform-origin: 50% 0;
+  transform: translateX(-50%) rotate(var(--heading, 0deg));
+}
+
+.user-location-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 3px solid #2563eb;
+  border-radius: 9999px;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.35);
+  transform: translateX(-50%);
+}
 </style>
 .marker-wrapper { width: 100%; height: 100%; position: relative; }
 .marker-wrapper, .house-marker { line-height: 0; }

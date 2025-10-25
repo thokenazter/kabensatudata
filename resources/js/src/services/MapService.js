@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { OfflineManager } from './OfflineManager'
 
 const API = {
   // Prefer bbox API already available
@@ -41,8 +42,20 @@ export const MapService = {
   },
 
   async getFamiliesForBuilding(id) {
-    const { data } = await axios.get(API.buildingFamilies(id))
-    return data
+    try {
+      const { data } = await axios.get(API.buildingFamilies(id))
+      const families = Array.isArray(data?.families) ? data.families : []
+      try { await OfflineManager.saveFamiliesForBuilding(id, families) } catch (_) {}
+      return data
+    } catch (err) {
+      try {
+        const fallback = await OfflineManager.getFamiliesForBuilding(id)
+        if (Array.isArray(fallback) && fallback.length) {
+          return { families: fallback, offline: true }
+        }
+      } catch (_) {}
+      throw err
+    }
   },
 
   async getHealthStatsByArea(bounds) {

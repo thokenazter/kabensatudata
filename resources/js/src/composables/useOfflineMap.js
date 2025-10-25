@@ -14,18 +14,36 @@ export function useOfflineMap() {
     const east = bounds.getEast()
     const west = bounds.getWest()
     const bbox = [west, south, east, north]
-    await offline.addCachedArea({ bbox })
     // Precache tiles for a couple of zoom levels around current
     const z = map.getZoom()
     await precacheTiles({ west, south, east, north }, [Math.max(10, z - 1), Math.min(18, z + 1)])
 
     // Prefetch and store buildings data for this bbox
+    let buildings = []
     try {
-      const buildings = await MapService.getBuildingsByBbox(bbox)
-      if (Array.isArray(buildings) && buildings.length) {
-        await saveBuildings(buildings)
-      }
-    } catch (_) {}
+      buildings = await MapService.getBuildingsByBbox(bbox)
+    } catch (err) {
+      throw err
+    }
+
+    const savedCount = Array.isArray(buildings) ? buildings.length : 0
+    let familiesSummary = { requested: 0, succeeded: 0 }
+    if (savedCount) {
+      await saveBuildings(buildings)
+      familiesSummary = await prefetchFamilies(buildings)
+    }
+
+    await offline.addCachedArea({
+      bbox,
+      buildingCount: savedCount,
+      familiesPrefetched: familiesSummary.succeeded,
+      familiesRequested: familiesSummary.requested,
+    })
+
+    return {
+      savedBuildings: savedCount,
+      familiesPrefetched: familiesSummary,
+    }
   }
 
   async function saveBuildings(buildings) {
@@ -55,6 +73,25 @@ export function useOfflineMap() {
     for (let i = 0; i < tasks.length; i += chunk) {
       await Promise.all(tasks.slice(i, i + chunk))
     }
+  }
+
+  async function prefetchFamilies(buildings) {
+    const MAX_BUILDINGS = 150
+    const CONCURRENCY = 5
+    const targets = buildings.slice(0, MAX_BUILDINGS)
+    let succeeded = 0
+    for (let i = 0; i < targets.length; i += CONCURRENCY) {
+      const batch = targets.slice(i, i + CONCURRENCY)
+      const results = await Promise.all(
+        batch.map((b) =>
+          MapService.getFamiliesForBuilding(b.id)
+            .then(() => true)
+            .catch(() => false)
+        )
+      )
+      succeeded += results.filter(Boolean).length
+    }
+    return { requested: targets.length, succeeded }
   }
 
   function tileRangeForBounds({ west, south, east, north }, z) {
